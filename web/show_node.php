@@ -1,5 +1,5 @@
 <?php
-# $Id: show_node.php 1696 2008-08-16 04:23:56Z carenas $
+# $Id$
 #
 # Shows information on a particular node, specified by
 # node host name. Used in concert with the physical_view page.

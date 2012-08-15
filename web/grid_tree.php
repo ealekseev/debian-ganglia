@@ -1,5 +1,5 @@
 <?php
-/* $Id: grid_tree.php 589 2005-10-10 07:42:26Z knobi1 $ */
+/* $Id$ */
 $tpl = new TemplatePower( template("grid_tree.tpl") );
 $tpl->prepare();
 

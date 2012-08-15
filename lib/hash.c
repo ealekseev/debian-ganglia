@@ -1,4 +1,4 @@
-/* $Id: hash.c 2013 2009-08-10 10:33:19Z d_pocock $ */
+/* $Id$ */
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>

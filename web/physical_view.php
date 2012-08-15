@@ -1,5 +1,5 @@
 <?php
-/* $Id: physical_view.php 583 2005-10-04 18:45:16Z knobi1 $ */
+/* $Id$ */
 #
 # Displays the cluster in a physical view. Cluster nodes in
 # this view are located by Rack, Rank, and Plane in the physical

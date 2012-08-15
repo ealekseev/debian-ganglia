@@ -1,7 +1,7 @@
 # This is an example of a Ganglia Meta Daemon configuration file
 #                http://ganglia.sourceforge.net/
 #
-# $Id: gmetad.conf.in 2014 2009-08-10 10:44:09Z d_pocock $
+# $Id$
 #
 #-------------------------------------------------------------------------------
 # Setting the debug_level to 1 will keep daemon in the forground and

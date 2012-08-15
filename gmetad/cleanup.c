@@ -1,4 +1,4 @@
-/* $Id: cleanup.c 2190 2010-01-08 15:47:40Z d_pocock $ */
+/* $Id$ */
 /*
  * cleanup.c - Enforces metric/host delete time. Helps keep
  *    memory usage trim and fit by deleting expired metrics from hash.

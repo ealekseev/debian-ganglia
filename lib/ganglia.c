@@ -1,7 +1,7 @@
 /**
  * @file gexec_funcs.c Functions to support gexec, gstat et al
  */
-/* $Id: ganglia.c 1398 2008-06-10 17:07:25Z bernardli $ */
+/* $Id$ */
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>

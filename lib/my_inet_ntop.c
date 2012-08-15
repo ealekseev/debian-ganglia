@@ -1,4 +1,4 @@
-/* $Id: my_inet_ntop.c 399 2004-11-18 21:42:46Z massie $ */
+/* $Id$ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

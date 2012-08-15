@@ -1,6 +1,6 @@
 #ifndef NET_H
 #define NET_H 1
-/* $Id: net.h 1638 2008-08-09 22:56:35Z carenas $ */
+/* $Id$ */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
