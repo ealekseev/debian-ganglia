@@ -1,7 +1,7 @@
 /**
  * @file debug_msg.c Debug Message function
  */
-/* $Id: debug_msg.c 837 2007-09-19 23:29:51Z bnicholes $ */
+/* $Id$ */
 #include <stdio.h>
 #include <stdarg.h>
 

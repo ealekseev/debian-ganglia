@@ -1,5 +1,5 @@
 #
-# $Id: ganglia.spec.in 2258 2010-02-01 16:29:15Z d_pocock $
+# $Id$
 #
 # ganglia.spec.  Generated from ganglia.spec.in by configure.
 #
@@ -8,17 +8,17 @@
 # build mixed architecture packages.  As a workaround, you must build
 # the RPMs using the following commandline
 #
-# % rpmbuild -ta --target noarch,i386 ganglia-3.1.7.tar.gz
+# % rpmbuild -ta --target noarch,i386 ganglia-3.1.8.tar.gz
 #
 Summary: Ganglia Distributed Monitoring System
 Name: ganglia
-Version: 3.1.7
+Version: 3.1.8
 URL: http://ganglia.info/
 Release: 1
 License: BSD
 Vendor: Ganglia Development Team <ganglia-developers@lists.sourceforge.net>
 Group: System Environment/Base
-Source: %{name}-3.1.7.tar.gz
+Source: %{name}-3.1.8.tar.gz
 Buildroot: %{_tmppath}/%{name}-%{version}-buildroot
 BuildRequires: libpng-devel, libart_lgpl-devel, gcc-c++, python-devel, libconfuse-devel, pcre-devel
 %if 0%{?suse_version}
@@ -49,7 +49,7 @@ Obsoletes: ganglia-webfrontend < %{version}
 Provides: ganglia-webfrontend = %{version}
 # We should put rrdtool as a Requires too but rrdtool rpm support is very weak
 # so most people install from source
-#Requires: ganglia-gmetad >=  3.1.7
+#Requires: ganglia-gmetad >=  3.1.8
 Requires: php-gd
 %if 0%{?suse_version}
 %define web_prefixdir /srv/www/htdocs/ganglia
@@ -136,7 +136,7 @@ gmetad packages
 %endif
 
 %prep
-%setup -n %{name}-3.1.7
+%setup -n %{name}-3.1.8
 
 %build
 %configure --with-gmetad --enable-status --sysconfdir=%{conf_dir}
@@ -409,7 +409,7 @@ fi
 - Set variable conf_dir to /etc/ganglia
 - Migrate /etc/{gmond,gmetad}.conf files to /etc/ganglia for upgrades etc.
 * Fri Nov 09 2007 Bernard Li <bernard@vanhpc.org>
-- Include .pyc files from /usr/lib/ganglia/python_modules
+- Include .pyc files from /usr/lib64/ganglia/python_modules
 * Thu Nov 08 2007 Bernard Li <bernard@vanhpc.org>
 - Clean up /etc/ganglia/conf.d/*.conf.in files
 * Wed Oct 10 2007 Bernard Li <bernard@vanhpc.org>

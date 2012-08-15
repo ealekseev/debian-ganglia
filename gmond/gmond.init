@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: gmond.init 180 2003-03-07 20:38:36Z sacerdoti $
+# $Id$
 #
 # chkconfig: 2345 70 40
 # description: gmond startup script

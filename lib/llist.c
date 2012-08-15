@@ -1,5 +1,5 @@
 /*
- * $Id: llist.c 588 2005-10-04 19:00:34Z knobi1 $
+ * $Id$
  * "Copyright (c) 1999 by Brent N. Chun and The Regents of the University 
  * of California.  All rights reserved."
  *

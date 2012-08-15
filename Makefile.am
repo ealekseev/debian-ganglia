@@ -1,4 +1,4 @@
-# $Id: Makefile.am 2232 2010-01-15 00:04:06Z d_pocock $
+# $Id$
 #
 
 include $(top_srcdir)/ganglia.inc
@@ -41,7 +41,7 @@ CHANGE_LOG_GEN_FLAGS = -i --alternate-strip-prefix="/trunk/monitor-core/" --brea
 
 ChangeLog:
 	touch ChangeLog
-	$(CHANGE_LOG_GEN_BIN) $(CHANGE_LOG_GEN_FLAGS)
+#	$(CHANGE_LOG_GEN_BIN) $(CHANGE_LOG_GEN_FLAGS)
 
 CLEANFILES = ganglia.sub pod2htm*
 

@@ -28,7 +28,7 @@
 // | http://templatepower.codocad.com                                     |
 // +----------------------------------------------------------------------+
 //
-// $Id: class.TemplatePower.inc.php 459 2004-12-13 19:01:46Z sacerdoti $
+// $Id$
 
 define("T_BYFILE",              0);
 define("T_BYVAR",               1);

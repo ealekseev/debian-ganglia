@@ -1,5 +1,5 @@
 <?php
-/* $Id: header.php 1831 2008-09-26 12:18:54Z carenas $ */
+/* $Id$ */
 
 # Check if this context is private.
 include_once "auth.php";

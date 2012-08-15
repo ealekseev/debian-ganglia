@@ -1,4 +1,4 @@
-/* $Id: gmetad.c 2190 2010-01-08 15:47:40Z d_pocock $ */
+/* $Id$ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>

@@ -1,4 +1,4 @@
-/* $Id: rrd_helpers.c 2201 2010-01-08 17:17:43Z d_pocock $ */
+/* $Id$ */
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

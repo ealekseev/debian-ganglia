@@ -1,5 +1,5 @@
 <?php
-/* $Id: ganglia.php 1817 2008-09-17 10:03:15Z carenas $ */
+/* $Id$ */
 #
 # Parses ganglia XML tree.
 #

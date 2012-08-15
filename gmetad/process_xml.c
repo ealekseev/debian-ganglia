@@ -1,4 +1,4 @@
-/* $Id: process_xml.c 2014 2009-08-10 10:44:09Z d_pocock $ */
+/* $Id$ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

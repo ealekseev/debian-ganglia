@@ -1,4 +1,4 @@
-/* $Id: become_a_nobody.c 1171 2008-03-31 22:00:49Z bnicholes $ */
+/* $Id$ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
