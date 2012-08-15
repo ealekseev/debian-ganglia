@@ -1,3 +1,10 @@
+ganglia (3.1.8-1) unstable; urgency=low
+
+  * Fix for path injection security bug (Closes: #683584)
+  * Add myself to uploaders
+
+ -- Daniel Pocock <daniel@pocock.com.au>  Wed, 15 Aug 2012 19:44:24 +0200
+
 ganglia (3.1.7-2) unstable; urgency=low
   
   * Stop ganglia-monitor from changing permissions on /var/lib/ganglia
