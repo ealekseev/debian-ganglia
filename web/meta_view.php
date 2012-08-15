@@ -1,5 +1,5 @@
 <?php
-/* $Id: meta_view.php 1710 2008-08-21 16:44:54Z bernardli $ */
+/* $Id$ */
 $tpl = new TemplatePower( template("meta_view.tpl") );
 $tpl->prepare();
 

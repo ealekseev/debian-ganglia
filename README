@@ -2,11 +2,11 @@ Name
     ganglia - distributed monitoring system
 
 Version
-    ganglia 3.1.7
+    ganglia 3.1.8
 
     The latest version of this software and document will always be found at
-    http://ganglia.sourceforge.net/. You are currently reading $Revision:
-    2209 $ of this document.
+    http://ganglia.sourceforge.net/. You are currently reading $Revision$ of
+    this document.
 
 Synopsis
          ______                  ___
@@ -266,8 +266,8 @@ Installation
     If you installed ganglia using RPMs then these files will be installed
     when you install the RPM. The RPM is installed simply by running
 
-      % rpm -Uvh ganglia-gmond-3.1.7.i386.rpm
-      % rpm -Uvh ganglia-gmetad-3.1.7.i386.rpm
+      % rpm -Uvh ganglia-gmond-3.1.8.i386.rpm
+      % rpm -Uvh ganglia-gmetad-3.1.8.i386.rpm
 
     Once you have the necessary binaries installed, you can test your
     installation by running
@@ -339,7 +339,7 @@ Installation
 
     Installation of the web frontend is simplified on Linux by using rpm.
 
-      % rpm -Uvh ganglia-web-3.1.7-1.i386.rpm
+      % rpm -Uvh ganglia-web-3.1.8-1.i386.rpm
       Preparing...                ########################################### [100%]
          1:ganglia-web            ########################################### [100%]
 
@@ -451,7 +451,7 @@ Commandline Tools
     commandline option
 
       % gmetric --help
-      gmetric 3.1.7
+      gmetric 3.1.8
 
       Purpose:
         The Ganglia Metric Client (gmetric) announces a metric
@@ -514,7 +514,7 @@ Commandline Tools
     "--help" option
 
       % gstat --help
-      gstat 3.1.7
+      gstat 3.1.8
 
       Purpose:
         The Ganglia Status Client (gstat) connects with a
@@ -743,8 +743,8 @@ Frequently Asked Questions (FAQ)
         Solaris and Tru64. He also helped with the IRIX port.
 
            State of the IRIX port:
-           
-   *  CPU percentage stuff hasn't improved despite my efforts.  I fear there
+   
+           *  CPU percentage stuff hasn't improved despite my efforts.  I fear there
               may be a flaw in the way I'm summing counters for all the CPUs.
            *  Auto-detection of network interfaces apparently segfaults.
            *  Memory and load reporting appear to be running properly.
@@ -753,16 +753,16 @@ Frequently Asked Questions (FAQ)
            *  gmetad untested.
            *  Monitoring core apparently stable in foreground, background being tested
            (had a segfault earlier).
-           
-   State of the Tru64 port:
-           
-   *  CPU percentage stuff here works perfectly.
+   
+           State of the Tru64 port:
+   
+           *  CPU percentage stuff here works perfectly.
            *  Memory and swap usage stats are suspected to be inaccurate.
            *  Total/running processes are not reported.
            *  gmetad untested.
            *  Monitoring core apparently stable in foreground and background.
-           
-   State of the Solaris port:
+   
+           State of the Solaris port:
            *  CPU percentages are slightly off, but correct enough for trending
               purposes.
            *  Load, ncpus, CPU speed, breads/writes, lreads/writes, phreads/writes,
@@ -772,8 +772,8 @@ Frequently Asked Questions (FAQ)
               further.
            *  Total processes are counted, but not running ones.
            *  gmetad appears stable
-           
-   Anyway, all three ports I've been messing with are usable and fairly
+   
+           Anyway, all three ports I've been messing with are usable and fairly
            stable.  Although there are areas for improvement I think we really can't
            keep hogging all this good stuff - what I'm looking at is ready for
            release.

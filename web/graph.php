@@ -1,5 +1,5 @@
 <?php
-/* $Id: graph.php 2183 2010-01-07 16:09:55Z d_pocock $ */
+/* $Id$ */
 include_once "./eval_config.php";
 include_once "./get_context.php";
 include_once "./functions.php";
@@ -122,7 +122,7 @@ if (!$graph) {
 
 $graph_file = "$graphdir/$graph.php";
 
-if ( is_readable($graph_file) ) {
+if ( is_readable($graph_file) and realpath($graphdir) === dirname(realpath($graph_file)) ) {
     include_once($graph_file);
 
     $graph_function = "graph_${graph}";

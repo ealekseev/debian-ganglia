@@ -1,5 +1,5 @@
 <?php
-/* $Id: get_context.php 2182 2010-01-07 16:00:54Z d_pocock $ */
+/* $Id$ */
 
 include_once "./functions.php";
 

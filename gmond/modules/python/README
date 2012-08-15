@@ -101,7 +101,7 @@ follows:
     module {
       name = "python_module"
       path = "modpython.so"
-      params = "/usr/lib/ganglia/python_modules"
+      params = "/usr/lib64/ganglia/python_modules"
     }
   }
 

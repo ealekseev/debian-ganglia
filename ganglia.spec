@@ -1,24 +1,24 @@
 #
 # $Id$
 #
-# @configure_input@
+# ganglia.spec.  Generated from ganglia.spec.in by configure.
 #
 # IMPORTANT NOTE:
 # This spec file has a noarch section.  RPM is braindead in that it cannot
 # build mixed architecture packages.  As a workaround, you must build
 # the RPMs using the following commandline
 #
-# % rpmbuild -ta --target noarch,i386 ganglia-@VERSION@.tar.gz
+# % rpmbuild -ta --target noarch,i386 ganglia-3.1.8.tar.gz
 #
 Summary: Ganglia Distributed Monitoring System
-Name: @PACKAGE@
-Version: @VERSION@
+Name: ganglia
+Version: 3.1.8
 URL: http://ganglia.info/
-Release: @REL@
+Release: 1
 License: BSD
 Vendor: Ganglia Development Team <ganglia-developers@lists.sourceforge.net>
 Group: System Environment/Base
-Source: %{name}-@VERSION@.tar.gz
+Source: %{name}-3.1.8.tar.gz
 Buildroot: %{_tmppath}/%{name}-%{version}-buildroot
 BuildRequires: libpng-devel, libart_lgpl-devel, gcc-c++, python-devel, libconfuse-devel, pcre-devel
 %if 0%{?suse_version}
@@ -49,7 +49,7 @@ Obsoletes: ganglia-webfrontend < %{version}
 Provides: ganglia-webfrontend = %{version}
 # We should put rrdtool as a Requires too but rrdtool rpm support is very weak
 # so most people install from source
-#Requires: ganglia-gmetad >=  @VERSION@
+#Requires: ganglia-gmetad >=  3.1.8
 Requires: php-gd
 %if 0%{?suse_version}
 %define web_prefixdir /srv/www/htdocs/ganglia
@@ -136,7 +136,7 @@ gmetad packages
 %endif
 
 %prep
-%setup -n %{name}-@VERSION@
+%setup -n %{name}-3.1.8
 
 %build
 %configure --with-gmetad --enable-status --sysconfdir=%{conf_dir}
@@ -219,7 +219,7 @@ fi
 # Create the directory structure
 %__install -d -m 0755 $RPM_BUILD_ROOT/etc/init.d
 %__install -d -m 0755 $RPM_BUILD_ROOT/etc/sysconfig
-%__install -d -m 0755 $RPM_BUILD_ROOT@varstatedir@/ganglia/rrds
+%__install -d -m 0755 $RPM_BUILD_ROOT/var/lib/ganglia/rrds
 %__install -d -m 0755 $RPM_BUILD_ROOT%{_mandir}/man1
 %__install -d -m 0755 $RPM_BUILD_ROOT%{_mandir}/man5
 
@@ -272,7 +272,7 @@ fi
 
 %files gmetad
 %defattr(-,root,root)
-%attr(0755,nobody,nobody)@varstatedir@/ganglia/
+%attr(0755,nobody,nobody)/var/lib/ganglia/
 %{_sbindir}/gmetad
 /etc/init.d/gmetad
 %config(noreplace) /etc/sysconfig/gmetad
@@ -409,7 +409,7 @@ fi
 - Set variable conf_dir to /etc/ganglia
 - Migrate /etc/{gmond,gmetad}.conf files to /etc/ganglia for upgrades etc.
 * Fri Nov 09 2007 Bernard Li <bernard@vanhpc.org>
-- Include .pyc files from @moduledir@/python_modules
+- Include .pyc files from /usr/lib64/ganglia/python_modules
 * Thu Nov 08 2007 Bernard Li <bernard@vanhpc.org>
 - Clean up /etc/ganglia/conf.d/*.conf.in files
 * Wed Oct 10 2007 Bernard Li <bernard@vanhpc.org>

@@ -1,5 +1,5 @@
 <?php
-/* $Id: cluster_view.php 1710 2008-08-21 16:44:54Z bernardli $ */
+/* $Id$ */
 $tpl = new TemplatePower( template("cluster_view.tpl") );
 $tpl->assignInclude("extra", template("cluster_extra.tpl"));
 $tpl->prepare();

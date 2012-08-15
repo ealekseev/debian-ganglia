@@ -1,5 +1,5 @@
 <?php
-/* $Id: host_view.php 2203 2010-01-08 17:25:32Z d_pocock $ */
+/* $Id$ */
 
 $tpl = new TemplatePower( template("host_view.tpl") );
 $tpl->assignInclude("extra", template("host_extra.tpl"));
