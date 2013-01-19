@@ -1,3 +1,9 @@
+ganglia (3.1.8-2) UNRELEASED; urgency=low
+
+  * Package now under pkg-monitoring maintainership, update control
+
+ -- Daniel Pocock <daniel@pocock.com.au>
+
 ganglia (3.1.8-1) unstable; urgency=low
 
   * Fix for path injection security bug (Closes: #683584)
