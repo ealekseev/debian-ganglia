@@ -5,6 +5,7 @@ ganglia (3.3.8-2) UNRELEASED; urgency=low
     can include patches to upstream.
   * Fix truncation of large block sizes in disk space reporting
     (Closes: Bug#694623).
+  * Update Maintainer and VCS entries for entry to pkg-monitoring on alioth
 
  -- Mario Lang <mlang@debian.org>  Thu, 29 Nov 2012 09:32:58 +0100
 
