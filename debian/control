@@ -2,6 +2,7 @@ Source: ganglia
 Section: net
 Priority: optional
 Maintainer: Debian Monitoring Maintainers <pkg-monitoring-maintainers@lists.alioth.debian.org>
+Uploaders: Stuart Teasdale <sdt@debian.org>, Daniel Pocock <daniel@pocock.com.au>
 Homepage: http://www.ganglia.info/
 Build-Depends: debhelper (>> 9.0.0), librrd2-dev, autoconf, autotools-dev, automake, libapr1-dev, libexpat1-dev, python-dev, libconfuse-dev, po-debconf, libxml2-dev, libdbi0-dev, libpcre3-dev, gperf, libtool, rsync
 Standards-Version: 3.9.4
