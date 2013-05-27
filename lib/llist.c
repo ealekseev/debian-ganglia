@@ -23,6 +23,7 @@
 #endif /* HAVE_CONFIG_H */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "llist.h"
 
 /*
@@ -74,6 +75,18 @@ int llist_remove(llist_entry **llist, llist_entry *e)
         }
     }
     return -1;
+}
+
+/*
+ * since llist_search only takes string functions with two args
+ * make a new strncmp by default uses len = strlen(s1)
+ */
+int llist_strncmp(const char *s1, const char *s2)
+{
+   int len, rv;
+   len = strlen(s1);
+   rv = strncmp(s1, s2, len);
+   return rv;
 }
 
 /* 

@@ -14,7 +14,7 @@
 ##  which is under a BSD-style license
 ##
 
-AWK="gawk"
+AWK="mawk"
 
 # The paths set by configure.
 prefix="/usr/local"
@@ -30,7 +30,7 @@ includedir="${prefix}/include"
 CFLAGS="`echo '-g -O2 -fno-strict-aliasing -Wall -D_REENTRANT' | $AWK '{ gsub(/,/, "\\\\,"); print }'`"
 LDFLAGS="`echo ' -L/usr/lib' | $AWK '{ gsub(/,/, "\\\\,"); print }'`"
 LIBS="-ldl -lnsl -lnsl -lpcre -lexpat -lconfuse -lapr-1 -lpthread "
-VERSION="3.4.0"
+VERSION="3.5.0"
 host_cpu="x86_64"
 
 # Additional paths specific to Ganglia.
@@ -40,8 +40,8 @@ varstatedir="/var/lib"
 # Additional variables that are substituted into configuration files.
 GANGLIA_MAJOR_VERSION="3"
 GANGLIA_MICRO_VERSION="0"
-GANGLIA_MINOR_VERSION="4"
-GANGLIA_VERSION="3.4.0"
+GANGLIA_MINOR_VERSION="5"
+GANGLIA_VERSION="3.5.0"
 REL="1"
 
 # We can probably just assume sed is on the path, but since we have it, we may

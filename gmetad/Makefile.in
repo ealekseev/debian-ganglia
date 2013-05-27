@@ -39,8 +39,8 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 sbin_PROGRAMS = gmetad$(EXEEXT)
 subdir = gmetad
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.in
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_compare_version.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -146,6 +146,13 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PERL_BIN = @PERL_BIN@
+PERL_CFLAGS = @PERL_CFLAGS@
+PERL_INCLUDES = @PERL_INCLUDES@
+PERL_LDFLAGS = @PERL_LDFLAGS@
+PHP_CONFIG_BIN = @PHP_CONFIG_BIN@
+PHP_INCLUDES = @PHP_INCLUDES@
+PHP_VERSION = @PHP_VERSION@
 PKG_CONFIG = @PKG_CONFIG@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
@@ -227,7 +234,8 @@ INCLUDES = @APR_INCLUDES@
 AM_CFLAGS = -I$(top_builddir)/lib -I$(top_builddir)/gmond -I$(top_builddir)/include $(GCFLAGS)
 gmetad_SOURCES = gmetad.c cmdline.c.in cmdline.c cmdline.h gmetad.h data_thread.c \
    server.c process_xml.c rrd_helpers.c conf.c conf.h type_hash.c \
-   xml_hash.c cleanup.c rrd_helpers.h daemon_init.c daemon_init.h
+   xml_hash.c cleanup.c rrd_helpers.h daemon_init.c daemon_init.h \
+	 server_priv.h
 
 gmetad_LDADD = $(top_builddir)/lib/libganglia.la -lrrd -lm \
                  $(GLDADD)

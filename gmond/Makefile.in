@@ -36,15 +36,18 @@ build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = $(dist_man_MANS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/ganglia.inc
-@BUILD_PYTHON_TRUE@@STATIC_BUILD_TRUE@am__append_1 = modules/python/mod_python.lo
-@BUILD_PYTHON_TRUE@@STATIC_BUILD_TRUE@am__append_2 = -lpython@PYTHON_VERSION@
-@BUILD_SFLOW_TRUE@am__append_3 = -DSFLOW
+@BUILD_PERL_TRUE@am__append_1 = perl_modules
+@BUILD_PYTHON_TRUE@@STATIC_BUILD_TRUE@am__append_2 = modules/python/mod_python.lo
+@BUILD_PYTHON_TRUE@@STATIC_BUILD_TRUE@am__append_3 = -lpython@PYTHON_VERSION@
+@BUILD_PHP_TRUE@@STATIC_BUILD_TRUE@am__append_4 = modules/php/mod_php.lo
+@BUILD_PHP_TRUE@@STATIC_BUILD_TRUE@am__append_5 = -lphp@PHP_VERSION@
+@BUILD_SFLOW_TRUE@am__append_6 = -DSFLOW
 sbin_PROGRAMS = gmond$(EXEEXT)
-@BUILD_SFLOW_TRUE@am__append_4 = sflow.h sflow.c sflow_gmetric.h
+@BUILD_SFLOW_TRUE@am__append_7 = sflow.h sflow.c sflow_gmetric.h
 subdir = gmond
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.in
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_compare_version.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -68,7 +71,7 @@ gmond_OBJECTS = $(am_gmond_OBJECTS)
 @STATIC_BUILD_TRUE@	modules/system/mod_proc.lo \
 @STATIC_BUILD_TRUE@	modules/system/mod_sys.lo \
 @STATIC_BUILD_TRUE@	modules/cpu/mod_multicpu.lo $(MOD_GSTATUS) \
-@STATIC_BUILD_TRUE@	$(am__append_1)
+@STATIC_BUILD_TRUE@	$(am__append_2) $(am__append_4)
 gmond_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(gmond_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -125,7 +128,7 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = modules python_modules php_modules perl_modules
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
   dir0=`pwd`; \
@@ -220,6 +223,13 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PERL_BIN = @PERL_BIN@
+PERL_CFLAGS = @PERL_CFLAGS@
+PERL_INCLUDES = @PERL_INCLUDES@
+PERL_LDFLAGS = @PERL_LDFLAGS@
+PHP_CONFIG_BIN = @PHP_CONFIG_BIN@
+PHP_INCLUDES = @PHP_INCLUDES@
+PHP_VERSION = @PHP_VERSION@
 PKG_CONFIG = @PKG_CONFIG@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
@@ -291,10 +301,10 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 varstatedir = @varstatedir@
 FIXCONFIG = $(top_srcdir)/scripts/fixconfig
-SUBDIRS = modules python_modules
+SUBDIRS = modules python_modules php_modules $(am__append_1)
 EXTRA_DIST = gmond.aix.init gmond.solaris.init.in gmond.init gmond.init.SuSE gmond.conf.5 gmond.conf.html conf.pod cmdline.sh
-@STATIC_BUILD_FALSE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_3)
-@STATIC_BUILD_TRUE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_3)
+@STATIC_BUILD_FALSE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_6)
+@STATIC_BUILD_TRUE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_6)
 @BUILD_STATUS_TRUE@@STATIC_BUILD_TRUE@MOD_GSTATUS = modules/status/mod_gstatus.lo
 @STATIC_BUILD_FALSE@GLDADD = 
 @STATIC_BUILD_TRUE@GLDADD = modules/disk/mod_disk.lo \
@@ -305,16 +315,18 @@ EXTRA_DIST = gmond.aix.init gmond.solaris.init.in gmond.init gmond.init.SuSE gmo
 @STATIC_BUILD_TRUE@	modules/system/mod_proc.lo \
 @STATIC_BUILD_TRUE@	modules/system/mod_sys.lo \
 @STATIC_BUILD_TRUE@	modules/cpu/mod_multicpu.lo $(MOD_GSTATUS) \
-@STATIC_BUILD_TRUE@	@STATIC_USER_MODULES@ $(am__append_1)
+@STATIC_BUILD_TRUE@	@STATIC_USER_MODULES@ $(am__append_2) \
+@STATIC_BUILD_TRUE@	$(am__append_4)
 @STATIC_BUILD_FALSE@GLDFLAGS = @EXPORT_SYMBOLS_DYNAMIC@
-@STATIC_BUILD_TRUE@GLDFLAGS = -static @EXPORT_SYMBOLS@ $(am__append_2)
+@STATIC_BUILD_TRUE@GLDFLAGS = -static @EXPORT_SYMBOLS@ $(am__append_3) \
+@STATIC_BUILD_TRUE@	$(am__append_5)
 INCLUDES = @APR_INCLUDES@
 AM_CFLAGS = -I$(top_builddir)/lib -I$(top_builddir)/include/ -I$(top_builddir)/libmetrics $(GCFLAGS)
 
 # metric.h and dtd.h are for gmetad/gmetric for now....
 gmond_SOURCES = gmond.c cmdline.c.in cmdline.c cmdline.h dtd.h \
 	g25_config.c core_metrics.c g25_config.h gmond_internal.h \
-	$(am__append_4)
+	$(am__append_7)
 dist_man_MANS = gmond.conf.5
 
 #monitor.c server.c listen.c cleanup.c \

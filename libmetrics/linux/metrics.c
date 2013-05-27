@@ -79,6 +79,7 @@ num_cpustates_func ( void )
 ** Loop over file until next "cpu" token is found.
 ** i=4 : Linux 2.4.x
 ** i=7 : Linux 2.6.x
+** i=8 : Linux 2.6.11
 */
    while (strncmp(p, "cpu", 3)) {
      p = skip_token(p);
@@ -121,7 +122,7 @@ static net_dev_stats *hash_lookup(char *devname, size_t nlen)
   stats = (net_dev_stats *)malloc(sizeof(net_dev_stats));
   if ( stats == NULL )
   {
-    err_msg("unable to allocate memory for /proc/net/dev/stats in hash_lookup(%s,%d)", name, nlen);
+    err_msg("unable to allocate memory for /proc/net/dev/stats in hash_lookup(%s,%zd)", name, nlen);
     free(name);
     return NULL;
   }
@@ -597,7 +598,7 @@ total_jiffies_func ( void )
 {
    char *p;
    JT user_jiffies, nice_jiffies, system_jiffies, idle_jiffies,
-                 wio_jiffies, irq_jiffies, sirq_jiffies;
+                 wio_jiffies, irq_jiffies, sirq_jiffies, steal_jiffies;
 
    p = update_file(&proc_stat);
    p = skip_token(p);
@@ -620,8 +621,15 @@ total_jiffies_func ( void )
    p = skip_whitespace(p);
    sirq_jiffies = strtod( p, &p );
 
-   return user_jiffies + nice_jiffies + system_jiffies + idle_jiffies +
+   if(num_cpustates == NUM_CPUSTATES_26X)
+     return user_jiffies + nice_jiffies + system_jiffies + idle_jiffies +
           wio_jiffies + irq_jiffies + sirq_jiffies;
+
+   p = skip_whitespace(p);
+   steal_jiffies = strtod( p, &p );
+
+   return user_jiffies + nice_jiffies + system_jiffies + idle_jiffies +
+          wio_jiffies + irq_jiffies + sirq_jiffies + steal_jiffies;
 }
 
 
@@ -918,6 +926,46 @@ cpu_sintr_func ( void )
 }
 
 g_val_t
+cpu_steal_func ( void )
+{
+   char *p;
+   static g_val_t val;
+   static struct timeval stamp={0,0};
+   static double last_steal_jiffies,  steal_jiffies,
+                 last_total_jiffies, total_jiffies, diff;
+
+   p = update_file(&proc_stat);
+   if((proc_stat.last_read.tv_sec != stamp.tv_sec) &&
+      (proc_stat.last_read.tv_usec != stamp.tv_usec)) {
+     stamp = proc_stat.last_read;
+
+     p = skip_token(p);
+     p = skip_token(p);
+     p = skip_token(p);
+     p = skip_token(p);
+     p = skip_token(p);
+     p = skip_token(p);
+     p = skip_token(p);
+     p = skip_token(p);
+     steal_jiffies  = strtod( p , (char **)NULL );
+     total_jiffies = total_jiffies_func();
+
+     diff = steal_jiffies - last_steal_jiffies;
+
+     if ( diff )
+       val.f = (diff/(total_jiffies - last_total_jiffies))*100;
+     else
+       val.f = 0.0;
+
+     last_steal_jiffies  = steal_jiffies;
+     last_total_jiffies = total_jiffies;
+
+   }
+
+   return val;
+}
+
+g_val_t
 load_one_func ( void )
 {
    g_val_t val;
@@ -1174,9 +1222,9 @@ int remote_mount(const char *device, const char *type)
 float device_space(char *mount, char *device, double *total_size, double *total_free)
 {
    struct statvfs svfs;
-   uint32_t blocksize;
-   uint32_t free;
-   uint32_t size;
+   double blocksize;
+   double free;
+   double size;
    /* The percent used: used/total * 100 */
    float pct=0.0;
 
@@ -1192,8 +1240,8 @@ float device_space(char *mount, char *device, double *total_size, double *total_
    size  = svfs.f_blocks;
    blocksize = svfs.f_bsize;
    /* Keep running sum of total used, free local disk space. */
-   *total_size += size * (double) blocksize;
-   *total_free += free * (double) blocksize;
+   *total_size += size * blocksize;
+   *total_free += free * blocksize;
    /* The percentage of space used on this partition. */
    pct = size ? ((size - free) / (float) size) * 100 : 0.0;
    return pct;
@@ -1204,12 +1252,11 @@ float find_disk_space(double *total_size, double *total_free)
 {
    FILE *mounts;
    char procline[1024];
-   char mount[1024], device[1024], type[1024], mode[1024];
+   char *mount, *device, *type, *mode, *other;
    /* We report in GB = 1e9 bytes. */
    double reported_units = 1e9;
    /* Track the most full disk partition, report with a percentage. */
    float thispct, max=0.0;
-   int rc;
 
    /* Read all currently mounted filesystems. */
    mounts=fopen(MOUNTS,"r");
@@ -1218,8 +1265,18 @@ float find_disk_space(double *total_size, double *total_free)
       return max;
    }
    while ( fgets(procline, sizeof(procline), mounts) ) {
-      rc=sscanf(procline, "%s %s %s %s ", device, mount, type, mode);
-      if (!rc) continue;
+     device = procline;
+     mount = index(procline, ' ');
+     if (mount == NULL) continue;
+     *mount++ = '\0';
+     type = index(mount, ' ');
+     if (type == NULL) continue;
+     *type++ = '\0';
+     mode = index(type, ' ');
+     if (mode == NULL) continue;
+     *mode++ = '\0';
+     other = index(mode, ' ');
+     if (other != NULL) *other = '\0';
       if (!strncmp(mode, "ro", 2)) continue;
       if (remote_mount(device, type)) continue;
       if (strncmp(device, "/dev/", 5) != 0 &&

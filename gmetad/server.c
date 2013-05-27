@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <pthread.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -12,6 +13,7 @@
 #include "dtd.h"
 #include "gmetad.h"
 #include "my_inet_ntop.h"
+#include "server_priv.h"
 
 extern g_tcp_socket *server_socket;
 extern pthread_mutex_t  server_socket_mutex;
@@ -26,7 +28,7 @@ extern char* getfield(char *buf, short int index);
 extern struct type_tag* in_type_list (char *, unsigned int);
 
 
-static inline int
+static inline int CHECK_FMT(2, 3)
 xml_print( client_t *client, const char *fmt, ... )
 {
    int rval, len;
@@ -149,7 +151,8 @@ metric_report_start(Generic_t *self, datum_t *key, client_t *client, void *arg)
       "SOURCE=\"%s\">\n",
       name, getfield(metric->strings, metric->valstr),
       getfield(metric->strings, metric->type),
-      getfield(metric->strings, metric->units), tn,
+      getfield(metric->strings, metric->units),
+      (unsigned int) tn,
       metric->tmax, metric->dmax, getfield(metric->strings, metric->slope),
       getfield(metric->strings, metric->source));
 
@@ -190,9 +193,10 @@ host_report_start(Generic_t *self, datum_t *key, client_t *client, void *arg)
    /* Note the hash key is the host's IP address. */
    rc = xml_print(client, "<HOST NAME=\"%s\" IP=\"%s\" REPORTED=\"%u\" "
       "TN=\"%u\" TMAX=\"%u\" DMAX=\"%u\" LOCATION=\"%s\" GMOND_STARTED=\"%u\" TAGS=\"%s\">\n",
-      name, getfield(host->strings, host->ip), host->reported, tn,
+      name, getfield(host->strings, host->ip), host->reported,
+      (unsigned int) tn,
       host->tmax, host->dmax, getfield(host->strings, host->location),
-		  host->started, getfield(host->strings, host->tags));
+      host->started, getfield(host->strings, host->tags));
 
    return rc;
 }
@@ -248,6 +252,17 @@ root_report_start(client_t *client)
 {
    int rc;
 
+   if (client->http)
+      {
+         rc = xml_print(client, "HTTP/1.0 200 OK\r\n"
+                                "Server: gmetad/" GANGLIA_VERSION_FULL "\r\n"
+                                "Content-Type: application/xml\r\n"
+                                "Connection: close\r\n"
+                                "\r\n");
+         if (rc)
+            return rc;
+      }
+
    rc = xml_print(client, DTD);
    if (rc) return 1;
 
@@ -255,7 +270,8 @@ root_report_start(client_t *client)
       VERSION);
 
    rc = xml_print(client, "<GRID NAME=\"%s\" AUTHORITY=\"%s\" LOCALTIME=\"%u\">\n",
-       gmetad_config.gridname, getfield(root.strings, root.authority_ptr), time(0));
+       gmetad_config.gridname, getfield(root.strings, root.authority_ptr),
+       (unsigned int) time(0));
 
    return rc;
 }
@@ -444,10 +460,23 @@ process_path (client_t *client, char *path, datum_t *myroot, datum_t *key)
                
                datum_free(found);
             }
+         else if (!client->http)
+            {
+               /* report this element */
+               rc = process_path(client, 0, myroot, NULL);
+            }
+         else if (!strcmp(element, "*"))
+            {
+               /* wildcard detected -> process every child */
+               struct request_context ctxt;
+               ctxt.path = q;
+               ctxt.client = client;
+               hash_foreach(node->children, process_path_adapter, (void*) &ctxt);
+            }
          else
             {
                /* element not found */
-               rc = process_path(client, 0, myroot, NULL);
+               rc = 0;
             }
          free(element);
       }
@@ -463,6 +492,14 @@ process_path (client_t *client, char *path, datum_t *myroot, datum_t *key)
 }
 
 
+static int
+process_path_adapter (datum_t *key, datum_t *val, void *arg)
+{
+   struct request_context *ctxt = (struct request_context*) arg;
+   return process_path(ctxt->client, ctxt->path, val, key);
+}
+
+
 /* 'Cleans' the request and calls the appropriate handlers.
  * This function alters the path to prepare it for processpath().
  */
@@ -473,9 +510,23 @@ process_request (client_t *client, char *path)
    int rc, pathlen;
 
    pathlen = strlen(path);
-   if (!pathlen) return 1;
+   if (!pathlen)
+       return 1;
 
-   if (*path != '/') return 1;
+   if (pathlen >= 12 && memcmp(path, "GET ", 4) == 0)
+      {
+         /* looks like a http request, validate it and update path_p */
+         char *http_p = path + pathlen - 9;
+         if (memcmp(http_p, " HTTP/1.0", 9) && memcmp(http_p, " HTTP/1.1", 9))
+            return 1;
+         *http_p = 0;
+         pathlen = strlen(path + 4);
+         memmove(path, path + 4, pathlen + 1);
+         client->http = 1;
+      }
+
+   if (*path != '/')
+       return 1;
 
    /* Check for illegal characters in element */
    if (strcspn(path, ">!@#$%`;|\"\\'<") < pathlen)
@@ -575,8 +626,8 @@ server_thread (void *arg)
          if ( client.fd < 0 )
             {
                err_ret("server_thread() error");
-               debug_msg("server_thread() %d clientfd = %d errno=%d\n",
-                        pthread_self(), client.fd, errno);
+               debug_msg("server_thread() %lx clientfd = %d errno=%d\n",
+                        (unsigned long) pthread_self(), client.fd, errno);
                continue;
             }
 
@@ -596,8 +647,9 @@ server_thread (void *arg)
                close( client.fd );
                continue;
             }
-         
+
          client.filter=0;
+         client.http=0;
          gettimeofday(&client.now, NULL);
 
          if (interactive)
@@ -623,8 +675,8 @@ server_thread (void *arg)
 
          if(root_report_start(&client))
             {
-               err_msg("server_thread() %d unable to write root preamble (DTD, etc)",
-                         pthread_self() );
+               err_msg("server_thread() %lx unable to write root preamble (DTD, etc)",
+                       (unsigned long) pthread_self() );
                close(client.fd);
                continue;
             }
@@ -635,14 +687,16 @@ server_thread (void *arg)
 
          if (process_path(&client, request, &rootdatum, NULL))
             {
-               err_msg("server_thread() %d unable to write XML tree info", pthread_self() );
+               err_msg("server_thread() %lx unable to write XML tree info",
+                       (unsigned long) pthread_self() );
                close(client.fd);
                continue;
             }
 
          if(root_report_end(&client))
             {
-               err_msg("server_thread() %d unable to write root epilog", pthread_self() );
+               err_msg("server_thread() %lx unable to write root epilog",
+                       (unsigned long) pthread_self() );
             }
 
          close(client.fd);

@@ -2,7 +2,7 @@ from distutils.core import setup
 from glob import glob
 
 setup(name='gmetad-python',
-      version='3.4.0',
+      version='3.5.0',
       description='Ganglia Meta daemon in Python',
       maintainer='Ganglia Development Team',
       maintainer_email='ganglia-developers@lists.sourceforge.net',
