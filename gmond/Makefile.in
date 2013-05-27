@@ -15,6 +15,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -47,14 +48,15 @@ sbin_PROGRAMS = gmond$(EXEEXT)
 subdir = gmond
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_compare_version.m4 \
-	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man5dir)"
+am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man5dir)" \
+	"$(DESTDIR)$(systemdsystemunitdir)"
 PROGRAMS = $(sbin_PROGRAMS)
 am__gmond_SOURCES_DIST = gmond.c cmdline.c.in cmdline.c cmdline.h \
 	dtd.h g25_config.c core_metrics.c g25_config.h \
@@ -121,6 +123,7 @@ am__base_list = \
 man5dir = $(mandir)/man5
 NROFF = nroff
 MANS = $(dist_man_MANS)
+DATA = $(systemdsystemunit_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
@@ -157,8 +160,9 @@ am__relativize = \
   reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-APR_CONFIG = @APR_CONFIG@
+APR_CFLAGS = @APR_CFLAGS@
 APR_INCLUDES = @APR_INCLUDES@
+APR_LIBS = @APR_LIBS@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -172,6 +176,8 @@ CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DEPS_CFLAGS = @DEPS_CFLAGS@
+DEPS_LIBS = @DEPS_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
@@ -231,6 +237,8 @@ PHP_CONFIG_BIN = @PHP_CONFIG_BIN@
 PHP_INCLUDES = @PHP_INCLUDES@
 PHP_VERSION = @PHP_VERSION@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_VERSION = @PYTHON_VERSION@
@@ -295,6 +303,7 @@ setuid_user = @setuid_user@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
+systemdsystemunitdir = @systemdsystemunitdir@
 target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
@@ -340,6 +349,9 @@ gmond_DEPENDENCIES = $(gmond_LDADD)
 gmond_LDFLAGS = $(GLDFLAGS)
 #	$(INSTALL_SCRIPT) gmond.solaris.init
 CLEANFILES = cmdline.c	
+@HAVE_SYSTEMD_TRUE@systemdsystemunit_DATA = \
+@HAVE_SYSTEMD_TRUE@        gmond.service
+
 all: all-recursive
 
 .SUFFIXES:
@@ -497,6 +509,26 @@ uninstall-man5:
 	test -z "$$files" || { \
 	  echo " ( cd '$(DESTDIR)$(man5dir)' && rm -f" $$files ")"; \
 	  cd "$(DESTDIR)$(man5dir)" && rm -f $$files; }
+install-systemdsystemunitDATA: $(systemdsystemunit_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(systemdsystemunitdir)" || $(MKDIR_P) "$(DESTDIR)$(systemdsystemunitdir)"
+	@list='$(systemdsystemunit_DATA)'; test -n "$(systemdsystemunitdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(systemdsystemunitdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(systemdsystemunitdir)" || exit $$?; \
+	done
+
+uninstall-systemdsystemunitDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(systemdsystemunit_DATA)'; test -n "$(systemdsystemunitdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(systemdsystemunitdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(systemdsystemunitdir)" && rm -f $$files
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -706,10 +738,10 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(PROGRAMS) $(MANS)
+all-am: Makefile $(PROGRAMS) $(MANS) $(DATA)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man5dir)"; do \
+	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(systemdsystemunitdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -761,7 +793,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-man
+install-data-am: install-man install-systemdsystemunitDATA
 
 install-dvi: install-dvi-recursive
 
@@ -808,7 +840,8 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-man uninstall-sbinPROGRAMS
+uninstall-am: uninstall-man uninstall-sbinPROGRAMS \
+	uninstall-systemdsystemunitDATA
 
 uninstall-man: uninstall-man5
 
@@ -824,12 +857,14 @@ uninstall-man: uninstall-man5
 	install-dvi-am install-exec install-exec-am install-exec-hook \
 	install-html install-html-am install-info install-info-am \
 	install-man install-man5 install-pdf install-pdf-am install-ps \
-	install-ps-am install-sbinPROGRAMS install-strip installcheck \
-	installcheck-am installdirs installdirs-am maintainer-clean \
+	install-ps-am install-sbinPROGRAMS install-strip \
+	install-systemdsystemunitDATA installcheck installcheck-am \
+	installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags tags-recursive uninstall uninstall-am uninstall-man \
-	uninstall-man5 uninstall-sbinPROGRAMS
+	uninstall-man5 uninstall-sbinPROGRAMS \
+	uninstall-systemdsystemunitDATA
 
 
 # Unfortunately, we can't do this here with a pattern rule because
@@ -852,6 +887,9 @@ gmond.conf.html: conf.pod
 
 gmond.solaris.init:	gmond.solaris.init.in $(FIXCONFIG)
 	$(FIXCONFIG) gmond.solaris.init.in
+
+gmond.service:	gmond.service.in $(FIXCONFIG)
+	$(FIXCONFIG) gmond.service.in
 
 # we declare the hook so that gmond.solaris.init will be created within the
 # build tree during the install phase

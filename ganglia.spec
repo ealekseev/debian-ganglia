@@ -8,15 +8,15 @@
 # (ex: i386, i686, x86_64) when calling rpmbuild as shown by the following
 # command line aimed at 80386 or higher CPUs :
 #
-# % rpmbuild -ta --target noarch,i386 ganglia-3.5.0.tar.gz
+# % rpmbuild -ta --target noarch,i386 ganglia-3.6.0.tar.gz
 #
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 
 Summary: Ganglia Distributed Monitoring System
 Name: ganglia
-Version: 3.5.0
+Version: 3.6.0
 URL: http://ganglia.info/
-# The Release macro value is set in configure.in, please update it there.
+# The Release macro value is set in configure.ac, please update it there.
 Release: 1
 License: BSD
 Vendor: Ganglia Development Team <ganglia-developers@lists.sourceforge.net>
@@ -52,7 +52,7 @@ Obsoletes: ganglia-webfrontend < %{version}
 Provides: ganglia-webfrontend = %{version}
 # We should put rrdtool as a Requires too but rrdtool rpm support is very weak
 # so most people install from source
-#Requires: ganglia-gmetad >=  3.5.0
+#Requires: ganglia-gmetad >=  3.6.0
 Requires: php >= 5, php-gd, php-xml
 %if 0%{?suse_version}
 %define web_prefixdir /srv/www/htdocs/ganglia
