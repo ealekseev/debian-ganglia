@@ -1,3 +1,2 @@
 version=3
 http://sf.net/ganglia/ganglia-(\d.+)\.tar\.gz
-http://sf.net/ganglia/ganglia-web-(\d.+)\.tar\.gz
