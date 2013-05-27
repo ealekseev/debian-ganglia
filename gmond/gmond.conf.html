@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>Ganglia Monitoring Daemon v3.3.8 Configuration</title>
+<title>Ganglia Monitoring Daemon v3.4.0 Configuration</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rev="made" href="mailto:root@localhost" />
 </head>
@@ -10,7 +10,7 @@
 <body style="background-color: white">
 <table border="0" width="100%" cellspacing="0" cellpadding="3">
 <tr><td class="block" style="background-color: #cccccc" valign="middle">
-<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.3.8 Configuration</span></strong></big>
+<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.4.0 Configuration</span></strong></big>
 </td></tr>
 </table>
 
@@ -244,7 +244,8 @@ can be an IPv4/IPv6 address or a resolvable hostname.</p>
 limits of memory and file descriptors.  If <strong>gmond</strong> is configured <strong>deaf</strong>
 this attribute will be ignored.</p>
 <p>The <strong>udp_recv_channel</strong> section has following attributes:
-<strong>mcast_join</strong>, <strong>bind</strong>, <strong>port</strong>, <strong>mcast_if</strong>, <strong>family</strong> and <strong>retry_bind</strong>.
+<strong>mcast_join</strong>, <strong>bind</strong>, <strong>port</strong>, <strong>mcast_if</strong>, <strong>family</strong>, <strong>retry_bind</strong>
+and <strong>buffer</strong>.
 The <strong>udp_recv_channel</strong> can also have an <strong>acl</strong> definition (see
 ACCESS CONTROL LISTS below).</p>
 <p>For example, the 2.5.x gmond ran with a single udp receive channel...</p>
@@ -307,6 +308,19 @@ loop and repeat the bind attempt every 60 seconds:</p>
     port = 6343
     retry_bind = true
   }</pre>
+<p>If you have a large system with lots of metrics, you might experience
+UDP drops. This happens when <strong>gmond</strong> is not able to process the UDP
+fast enough from the network. In this case you might consider changing
+your setup into a more distributed setup using aggregator <strong>gmond</strong> hosts.
+Alternatively you can choose to create a bigger receive <strong>buffer</strong>:</p>
+<pre>
+  udp_recv_channel {
+    port = 6343
+    buffer = 10485760
+  }
+B&lt;buffer&gt; is specified in bytes, i.e.: 10485760 will allow 10MB UDP 
+to be buffered in memory.</pre>
+<p>Note: increasing buffer size will increase memory usage by <strong>gmond</strong></p>
 <p>
 </p>
 <h2><a name="tcp_accept_channel">tcp_accept_channel</a></h2>
@@ -615,7 +629,7 @@ a useful starting point for creating your own custom configuration.</p>
 <p>Copyright (c) 2005 The University of California, Berkeley</p>
 <table border="0" width="100%" cellspacing="0" cellpadding="3">
 <tr><td class="block" style="background-color: #cccccc" valign="middle">
-<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.3.8 Configuration</span></strong></big>
+<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.4.0 Configuration</span></strong></big>
 </td></tr>
 </table>
 

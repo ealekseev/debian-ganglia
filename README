@@ -2,7 +2,7 @@ Name
     ganglia - distributed monitoring system
 
 Version
-    ganglia 3.3.8
+    ganglia 3.4.0
 
     The latest version of this software and document will always be found at
     http://ganglia.sourceforge.net/.
@@ -268,8 +268,8 @@ Installation
     If you installed ganglia using RPMs then these files will be installed
     when you install the RPM. The RPM is installed simply by running
 
-      % rpm -Uvh ganglia-gmond-3.3.8.i386.rpm
-      % rpm -Uvh ganglia-gmetad-3.3.8.i386.rpm
+      % rpm -Uvh ganglia-gmond-3.4.0.i386.rpm
+      % rpm -Uvh ganglia-gmetad-3.4.0.i386.rpm
 
     Once you have the necessary binaries installed, you can test your
     installation by running
@@ -338,7 +338,7 @@ Installation
 
     Installation of the web frontend is simplified on Linux by using rpm.
 
-      % rpm -Uvh ganglia-web-3.3.8-1.noarch.rpm
+      % rpm -Uvh ganglia-web-3.4.0-1.noarch.rpm
       Preparing...                ########################################### [100%]
          1:ganglia-web            ########################################### [100%]
 
@@ -450,7 +450,7 @@ Commandline Tools
     commandline option
 
       % gmetric --help
-      gmetric 3.3.8
+      gmetric 3.4.0
 
       Purpose:
         The Ganglia Metric Client (gmetric) announces a metric
@@ -513,7 +513,7 @@ Commandline Tools
     "--help" option
 
       % gstat --help
-      gstat 3.3.8
+      gstat 3.4.0
 
       Purpose:
         The Ganglia Status Client (gstat) connects with a

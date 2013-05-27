@@ -43,9 +43,7 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(top_srcdir)/gmetad-python/gmetad-python.conf.in \
 	$(top_srcdir)/gmetad-python/plugins/rrd_plugin.py.in \
 	$(top_srcdir)/gmetad-python/setup.py.in \
-	$(top_srcdir)/scripts/fixconfig.in \
-	$(top_srcdir)/web/conf_default.php.in \
-	$(top_srcdir)/web/version.php.in AUTHORS COPYING ChangeLog \
+	$(top_srcdir)/scripts/fixconfig.in AUTHORS COPYING ChangeLog \
 	INSTALL NEWS build/config.guess build/config.sub build/depcomp \
 	build/install-sh build/ltmain.sh build/missing
 subdir = .
@@ -61,8 +59,7 @@ CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = scripts/fixconfig ganglia.spec \
 	gmetad-python/setup.py gmetad-python/Gmetad/gmetad_config.py \
 	gmetad-python/gmetad-python.conf \
-	gmetad-python/plugins/rrd_plugin.py web/version.php \
-	web/conf_default.php
+	gmetad-python/plugins/rrd_plugin.py
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -268,7 +265,6 @@ SUBDIRS = $(GANGLIA_SUBDIRS)
 GANGLIA_SUBDIRS_DIST = lib libmetrics tests gmetad gmond gstat gmetric include mans
 DIST_SUBDIRS = $(GANGLIA_SUBDIRS_DIST) 
 EXTRA_DIST = BUGS README.WIN README.AIX README.GIT ganglia.spec.aix ganglia.spec ganglia.pod ganglia.html ganglia-config.in \
-	web \
 	WiX Makefile.WiX \
 	scripts
 
@@ -339,10 +335,6 @@ gmetad-python/Gmetad/gmetad_config.py: $(top_builddir)/config.status $(top_srcdi
 gmetad-python/gmetad-python.conf: $(top_builddir)/config.status $(top_srcdir)/gmetad-python/gmetad-python.conf.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 gmetad-python/plugins/rrd_plugin.py: $(top_builddir)/config.status $(top_srcdir)/gmetad-python/plugins/rrd_plugin.py.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-web/version.php: $(top_builddir)/config.status $(top_srcdir)/web/version.php.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-web/conf_default.php: $(top_builddir)/config.status $(top_srcdir)/web/conf_default.php.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:
@@ -819,7 +811,6 @@ dist-local: README ganglia.html
 # We go through and make sure all the files have
 # the same timestamp with the last command here...
 dist-hook:
-	rm -rf $(distdir)/web/.git*
 	for subdir in $(EXTRA_SUBDIRS); do \
 	  tar -c --exclude=".libs" --exclude "core.*" \
 	  --exclude="*.o"  --exclude="*.lo" \
@@ -833,7 +824,6 @@ dist-hook:
 	  --exclude="configure.lineno" --exclude="configure.status.lineno" \
 	  -f - $$subdir | (cd $(distdir) && tar -xf -)\
 	done;
-	tar -c --exclude ".git*" -f - web | (cd $(distdir) && tar -xf -)
 	touch $(distdir)/Makefile.am
 	find $(distdir) -exec touch -r $(distdir)/Makefile.am {} \;
 

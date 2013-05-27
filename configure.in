@@ -40,8 +40,8 @@ AC_CONFIG_AUX_DIR(build)
 # GANGLIA_MINOR_VERSION and GANGLIA_MICRO_VERSION
 # to 0 (zero) 
 GANGLIA_MAJOR_VERSION=3
-GANGLIA_MINOR_VERSION=3
-GANGLIA_MICRO_VERSION=8
+GANGLIA_MINOR_VERSION=4
+GANGLIA_MICRO_VERSION=0
 
 # REL is used for various packaging systems:
 # RHEL:
@@ -827,8 +827,6 @@ AC_OUTPUT(Makefile
           gmetric/Makefile
           include/Makefile
           mans/Makefile
-          web/version.php
-          web/conf_default.php
           )
 
 echo ""

@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "gmond.conf 5"
-.TH gmond.conf 5 "2012-08-13" "ganglia/3.3.8" "Ganglia Monitoring System"
+.TH gmond.conf 5 "2012-05-02" "ganglia/3.4.0" "Ganglia Monitoring System"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -360,7 +360,8 @@ limits of memory and file descriptors.  If \fBgmond\fR is configured \fBdeaf\fR
 this attribute will be ignored.
 .PP
 The \fBudp_recv_channel\fR section has following attributes:
-\&\fBmcast_join\fR, \fBbind\fR, \fBport\fR, \fBmcast_if\fR, \fBfamily\fR and \fBretry_bind\fR.
+\&\fBmcast_join\fR, \fBbind\fR, \fBport\fR, \fBmcast_if\fR, \fBfamily\fR, \fBretry_bind\fR
+and \fBbuffer\fR.
 The \fBudp_recv_channel\fR can also have an \fBacl\fR definition (see
 \&\s-1ACCESS\s0 \s-1CONTROL\s0 \s-1LISTS\s0 below).
 .PP
@@ -441,6 +442,23 @@ loop and repeat the bind attempt every 60 seconds:
 \&    retry_bind = true
 \&  }
 .Ve
+.PP
+If you have a large system with lots of metrics, you might experience
+\&\s-1UDP\s0 drops. This happens when \fBgmond\fR is not able to process the \s-1UDP\s0
+fast enough from the network. In this case you might consider changing
+your setup into a more distributed setup using aggregator \fBgmond\fR hosts.
+Alternatively you can choose to create a bigger receive \fBbuffer\fR:
+.PP
+.Vb 6
+\&  udp_recv_channel {
+\&    port = 6343
+\&    buffer = 10485760
+\&  }
+\&B<buffer> is specified in bytes, i.e.: 10485760 will allow 10MB UDP 
+\&to be buffered in memory.
+.Ve
+.PP
+Note: increasing buffer size will increase memory usage by \fBgmond\fR
 .SS "tcp_accept_channel"
 .IX Subsection "tcp_accept_channel"
 You can specify as many \fBtcp_accept_channel\fR sections as you like
