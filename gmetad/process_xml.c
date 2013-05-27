@@ -765,7 +765,7 @@ startElement_EXTRA_ELEMENT (void *data, const char *el, const char **attr)
     */  
     if (metric.ednameslen >= MAX_EXTRA_ELEMENTS) 
     {
-        debug_msg("Can not add more extra elements for [%s].  Capacity of %d reached[%s].",
+        debug_msg("Can not add more extra elements for [%s].  Capacity of %d reached.",
                   name, MAX_EXTRA_ELEMENTS);
         return 0;
     }
@@ -1061,6 +1061,7 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
    char num[256];
    Metric_t *metric;
    struct type_tag *tt;
+   llist_entry *le;
 
    name = (char*) key->data;
    metric = (Metric_t*) val->data;
@@ -1072,6 +1073,10 @@ finish_processing_source(datum_t *key, datum_t *val, void *arg)
 
    tt = in_type_list(type, strlen(type));
    if (!tt) return 0;
+
+   /* Don't save to RRD if this is a metric not to be summarized */
+   if (llist_search(&(gmetad_config.unsummarized_metrics), (void *)name, llist_strncmp, &le) == 0)
+      return 0;
 
    switch (tt->type)
       {
@@ -1174,7 +1179,7 @@ end (void *data, const char *el)
       {
          case GRID_TAG:
             rc = endElement_GRID(data, el);
-	    break;
+	    /* No break. */
 
          case CLUSTER_TAG:
             rc = endElement_CLUSTER(data, el);
@@ -1220,7 +1225,7 @@ process_xml(data_source_list_t *d, char *buf)
       {
          err_msg ("Process XML (%s): XML_ParseBuffer() error at line %d:\n%s\n",
                          d->name,
-                         XML_GetCurrentLineNumber (xml_parser),
+                         (int) XML_GetCurrentLineNumber (xml_parser),
                          XML_ErrorString (XML_GetErrorCode (xml_parser)));
          xmldata.rval = 1;
       }

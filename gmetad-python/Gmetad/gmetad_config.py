@@ -63,7 +63,7 @@ class GmetadConfig:
     XML_PORT = 'xml_port'
     INTERACTIVE_PORT = 'interactive_port'
     SERVER_THREADS = 'server_threads'
-    VERSION = '3.4.0'
+    VERSION = '3.5.0'
     PLUGINS_DIR = 'plugins_dir'
     
     _cfgDefaults = {

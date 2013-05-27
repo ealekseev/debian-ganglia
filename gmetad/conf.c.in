@@ -162,7 +162,7 @@ static DOTCONF_CB(cb_data_source)
    if(!find)
          err_quit("Unable to insert list pointer into source hash\n");
    
-   debug_msg("Data inserted for [%s] into sources hash", key.data);
+   debug_msg("Data inserted for [%s] into sources hash", (const char *) key.data);
    return NULL;
 }
 
@@ -170,14 +170,14 @@ static DOTCONF_CB(cb_debug_level)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
    c->debug_level = cmd->data.value;
-   debug_msg("Setting the debug level to %d", cmd->data.value);
+   debug_msg("Setting the debug level to %ld", cmd->data.value);
    return NULL;
 }
 
 static DOTCONF_CB(cb_xml_port)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
-   debug_msg("Setting xml port to %d", cmd->data.value);
+   debug_msg("Setting xml port to %ld", cmd->data.value);
    c->xml_port = cmd->data.value;
    return NULL;
 }
@@ -185,7 +185,7 @@ static DOTCONF_CB(cb_xml_port)
 static DOTCONF_CB(cb_interactive_port)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
-   debug_msg("Setting interactive port to %d", cmd->data.value);
+   debug_msg("Setting interactive port to %ld", cmd->data.value);
    c->interactive_port = cmd->data.value;
    return NULL;
 }
@@ -193,7 +193,7 @@ static DOTCONF_CB(cb_interactive_port)
 static DOTCONF_CB(cb_server_threads)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
-   debug_msg("Setting number of xml server threads to %d", cmd->data.value);
+   debug_msg("Setting number of xml server threads to %ld", cmd->data.value);
    c->server_threads = cmd->data.value;
    return NULL;
 }
@@ -201,7 +201,7 @@ static DOTCONF_CB(cb_server_threads)
 static DOTCONF_CB(cb_umask)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
-   debug_msg("Setting umask to %.5o & 07077", cmd->data.value);
+   debug_msg("Setting umask to %.5lo & 07077", cmd->data.value);
    c->umask = cmd->data.value & 07077; /* protect owner permissions */
    return NULL;
 }
@@ -265,7 +265,7 @@ static DOTCONF_CB(cb_carbon_server)
 static DOTCONF_CB(cb_carbon_port)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
-   debug_msg("Setting carbon port to %d", cmd->data.value);
+   debug_msg("Setting carbon port to %ld", cmd->data.value);
    c->carbon_port = cmd->data.value;
    return NULL;
 }
@@ -273,7 +273,7 @@ static DOTCONF_CB(cb_carbon_port)
 static DOTCONF_CB(cb_carbon_timeout)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
-   debug_msg("Setting carbon timeout to %d", cmd->data.value);
+   debug_msg("Setting carbon timeout to %ld", cmd->data.value);
    c->carbon_timeout = cmd->data.value;
    return NULL;
 }
@@ -283,6 +283,22 @@ static DOTCONF_CB(cb_graphite_prefix)
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
    debug_msg("Enabling Graphite proxy to %s", cmd->data.str);
    c->graphite_prefix = strdup (cmd->data.str);
+   return NULL;
+}
+
+static DOTCONF_CB(cb_unsummarized_metrics)
+{
+   int i;
+   llist_entry *le;
+   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+
+   for (i = 0; i < cmd->arg_count; i++)
+      {
+         le = (llist_entry *)malloc(sizeof(llist_entry));
+         le->val = strdup(cmd->data.list[i]);
+         llist_add(&(c->unsummarized_metrics), le);
+         debug_msg("Adding %s to unsummarized_metrics", (const char *) le->val);
+      }
    return NULL;
 }
 
@@ -315,6 +331,7 @@ static configoption_t gmetad_options[] =
       {"carbon_port", ARG_INT, cb_carbon_port, &gmetad_config, 0},
       {"carbon_timeout", ARG_INT, cb_carbon_timeout, &gmetad_config, 0},
       {"graphite_prefix", ARG_STR, cb_graphite_prefix, &gmetad_config, 0},
+      {"unsummarized_metrics", ARG_LIST, cb_unsummarized_metrics, &gmetad_config, 0},
       LAST_OPTION
    };
 
@@ -340,6 +357,7 @@ set_defaults (gmetad_config_t *config)
    config->RRAs[1] = "RRA:AVERAGE:0.5:4:20160";
    config->RRAs[2] = "RRA:AVERAGE:0.5:40:52704";
    config->case_sensitive_hostnames = 1;
+   config->unsummarized_metrics = NULL;
 }
 
 int

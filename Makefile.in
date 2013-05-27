@@ -48,8 +48,8 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	build/install-sh build/ltmain.sh build/missing
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.in
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_compare_version.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -182,6 +182,13 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PERL_BIN = @PERL_BIN@
+PERL_CFLAGS = @PERL_CFLAGS@
+PERL_INCLUDES = @PERL_INCLUDES@
+PERL_LDFLAGS = @PERL_LDFLAGS@
+PHP_CONFIG_BIN = @PHP_CONFIG_BIN@
+PHP_INCLUDES = @PHP_INCLUDES@
+PHP_VERSION = @PHP_VERSION@
 PKG_CONFIG = @PKG_CONFIG@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
@@ -605,7 +612,7 @@ distcheck: dist
 	*.zip*) \
 	  unzip $(distdir).zip ;;\
 	esac
-	chmod -R a-w $(distdir); chmod a+w $(distdir)
+	chmod -R a-w $(distdir); chmod u+w $(distdir)
 	mkdir $(distdir)/_build
 	mkdir $(distdir)/_inst
 	chmod a-w $(distdir)

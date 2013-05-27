@@ -8,13 +8,13 @@
 # (ex: i386, i686, x86_64) when calling rpmbuild as shown by the following
 # command line aimed at 80386 or higher CPUs :
 #
-# % rpmbuild -ta --target noarch,i386 ganglia-3.4.0.tar.gz
+# % rpmbuild -ta --target noarch,i386 ganglia-3.5.0.tar.gz
 #
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 
 Summary: Ganglia Distributed Monitoring System
 Name: ganglia
-Version: 3.4.0
+Version: 3.5.0
 URL: http://ganglia.info/
 # The Release macro value is set in configure.in, please update it there.
 Release: 1
@@ -52,7 +52,7 @@ Obsoletes: ganglia-webfrontend < %{version}
 Provides: ganglia-webfrontend = %{version}
 # We should put rrdtool as a Requires too but rrdtool rpm support is very weak
 # so most people install from source
-#Requires: ganglia-gmetad >=  3.4.0
+#Requires: ganglia-gmetad >=  3.5.0
 Requires: php >= 5, php-gd, php-xml
 %if 0%{?suse_version}
 %define web_prefixdir /srv/www/htdocs/ganglia
@@ -332,8 +332,8 @@ fi
 # Clean up the .conf.in files
 %__rm -f $RPM_BUILD_ROOT%{conf_dir}/conf.d/*.conf.in
 
-# Disable the diskusage module until it is configured properly
-%__mv $RPM_BUILD_ROOT%{conf_dir}/conf.d/diskusage.pyconf $RPM_BUILD_ROOT%{conf_dir}/conf.d/diskusage.pyconf.disabled
+# Disable the multicpu module until it is configured properly
+%__mv $RPM_BUILD_ROOT%{conf_dir}/conf.d/multicpu.conf $RPM_BUILD_ROOT%{conf_dir}/conf.d/multicpu.conf.disabled
 
 %__make DESTDIR=$RPM_BUILD_ROOT install
 %__make -C gmond gmond.conf.5
@@ -387,7 +387,7 @@ fi
 %config(noreplace) %{conf_dir}/conf.d/modgstatus.conf
 %dir %{_libdir}/ganglia/
 %{_libdir}/ganglia/modmulticpu.so*
-%{conf_dir}/conf.d/multicpu.conf
+%{conf_dir}/conf.d/multicpu.conf*
 %{_libdir}/ganglia/modcpu.so*
 %{_libdir}/ganglia/moddisk.so*
 %{_libdir}/ganglia/modgstatus.so
