@@ -2,7 +2,7 @@ from distutils.core import setup
 from glob import glob
 
 setup(name='gmetad-python',
-      version='3.5.0',
+      version='3.6.0',
       description='Ganglia Meta daemon in Python',
       maintainer='Ganglia Development Team',
       maintainer_email='ganglia-developers@lists.sourceforge.net',
@@ -26,5 +26,7 @@ plug in any type of gmetad-level analysis.''',
       packages=['Gmetad'],
       scripts=['gmetad.py'],
       data_files=[('/usr/local/etc', ['gmetad-python.conf']),
-                  ('/usr/local/lib64/ganglia/python_modules/gmetad', glob('plugins/*.py'))] 
+                  ('/usr/local/lib64/ganglia/python_modules/gmetad', glob('plugins/*.py')),
+                  ('', ['gmetad-python.service']),
+                  ]
      )
