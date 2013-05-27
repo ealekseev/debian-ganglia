@@ -126,7 +126,7 @@ binary-arch: build install
 	dh_installman -plibganglia1-dev
 	dh_installman -pgmetad
 	dh_installinfo -s
-	dh_installchangelogs
+	dh_installchangelogs -s
 	dh_link -s
 	dh_strip -s
 	dh_compress -s
