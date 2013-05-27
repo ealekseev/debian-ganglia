@@ -32,6 +32,7 @@
 
 import statvfs
 import os
+import ganglia
 
 descriptors = list()
     
@@ -73,7 +74,6 @@ def DiskUsed_Handler(name):
     st = os.statvfs(d['mount'])
     free = st[statvfs.F_BAVAIL]
     size = st[statvfs.F_BLOCKS]
-    blocksize = st[statvfs.F_BSIZE]
     
     if size:
         return ((size - free) / float(size)) * 100
@@ -91,7 +91,8 @@ def Init_Metric (line, name, tmax, type, units, slope, fmt, desc, handler):
         'units': units,
         'slope': slope,
         'format': fmt,
-        'description': desc, 
+        'description': desc,
+        'groups': 'disk',
         'mount': line[1]}
     return d
     
@@ -108,13 +109,15 @@ def metric_init(params):
         elif Remote_Mount(line[0], line[2]): continue
         elif (not line[0].startswith('/dev/')) and (not line[0].startswith('/dev2/')): continue;
         
-        print 'Discovered device %s' % line[1]
+	if ganglia.get_debug_msg_level() > 1:
+            print 'Discovered device %s' % line[1]
+        
         descriptors.append(Init_Metric(line, 'disk_total', int(1200), 
-            'double', 'GB', 'zero', '%.3f', 
+            'double', 'GB', 'both', '%.3f', 
             'Available disk space', DiskTotal_Handler))
         descriptors.append(Init_Metric(line, 'disk_used', int(180), 
-            'float', 'Percent', 'both', '%.1f', 
-            'Used disk space', DiskUsed_Handler))
+            'float', '%', 'both', '%.1f', 
+            'Percent used disk space', DiskUsed_Handler))
         
     f.close()
     return descriptors
@@ -129,4 +132,3 @@ if __name__ == '__main__':
     for d in descriptors:
         v = d['call_back'](d['name'])
         print 'value for %s is %f' % (d['name'],  v)
-

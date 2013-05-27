@@ -5,14 +5,16 @@
 #define _LARGEFILE64_SOURCE
 #endif
 
-#include <rpc/rpc.h>
+#include <rpc/types.h>
+#include <rpc/xdr.h>
 
-#include "gm_mmn.h"
+#include <gm_mmn.h>
 #ifndef GM_PROTOCOL_GUARD
-#include "gm_protocol.h"
+#include <netinet/in.h>
+#include <gm_protocol.h>
 #endif
-#include "gm_value.h"
-#include "gm_msg.h"
+#include <gm_value.h>
+#include <gm_msg.h>
 
 #include <confuse.h>   /* header for libconfuse */
 #include <apr.h>

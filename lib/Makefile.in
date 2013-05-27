@@ -39,6 +39,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@BUILD_SFLOW_TRUE@am__append_1 = -DSFLOW
 subdir = lib
 DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/default_conf.h.in
@@ -84,7 +85,7 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libganglia_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_libganglia_la_OBJECTS = gm_protocol_xdr.lo become_a_nobody.lo \
-	debug_msg.lo daemon_init.lo file.lo dotconf.lo error_msg.lo \
+	debug_msg.lo update_pidfile.lo file.lo dotconf.lo error_msg.lo \
 	ganglia.lo hash.lo inetaddr.lo llist.lo my_inet_ntop.lo \
 	rdwr.lo readdir.lo tcp.lo scoreboard.lo apr_net.lo libgmond.lo
 libganglia_la_OBJECTS = $(am_libganglia_la_OBJECTS)
@@ -142,6 +143,7 @@ GANGLIA_MICRO_VERSION = @GANGLIA_MICRO_VERSION@
 GANGLIA_MINOR_VERSION = @GANGLIA_MINOR_VERSION@
 GANGLIA_VERSION = @GANGLIA_VERSION@
 GREP = @GREP@
+GWEB_VERSION = @GWEB_VERSION@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -177,6 +179,7 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_VERSION = @PYTHON_VERSION@
@@ -211,6 +214,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gsysconfdir = @gsysconfdir@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -245,8 +249,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 varstatedir = @varstatedir@
-@STATIC_BUILD_FALSE@GCFLAGS = -D_LARGEFILE64_SOURCE
-@STATIC_BUILD_TRUE@GCFLAGS = -D_LARGEFILE64_SOURCE
+@STATIC_BUILD_FALSE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_1)
+@STATIC_BUILD_TRUE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_1)
 @STATIC_BUILD_FALSE@GLDADD = 
 @STATIC_BUILD_TRUE@GLDADD = 
 @STATIC_BUILD_FALSE@GLDFLAGS = 
@@ -258,7 +262,7 @@ EXTRA_DIST = gm_protocol.x
 lib_LTLIBRARIES = libganglia.la
 libganglia_la_SOURCES = gm_protocol_xdr.c gm_protocol.h \
 become_a_nobody.c become_a_nobody.h \
-debug_msg.c daemon_init.c daemon_init.h file.c file.h \
+debug_msg.c update_pidfile.c update_pidfile.h file.c \
 dotconf.c dotconf.h error_msg.c ganglia_priv.h \
 ganglia.c hash.c hash.h inetaddr.c llist.c llist.h \
 my_inet_ntop.c my_inet_ntop.h net.h rdwr.c rdwr.h readdir.c readdir.h tcp.c \
@@ -286,9 +290,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu lib/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign lib/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu lib/Makefile
+	  $(AUTOMAKE) --foreign lib/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -358,7 +362,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apr_net.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/become_a_nobody.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daemon_init.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug_msg.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dotconf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/error_msg.Plo@am__quote@
@@ -377,6 +380,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/readdir.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scoreboard.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tcp.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/update_pidfile.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -629,7 +633,7 @@ uninstall-am: uninstall-includeHEADERS uninstall-libLTLIBRARIES
 	uninstall-libLTLIBRARIES
 
 gm_protocol_xdr.c gm_protocol.h: gm_protocol.x
-	rpcgen $<
+	rpcgen gm_protocol.x
 	$(GLDFLAGS)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

@@ -1,4 +1,4 @@
-#/*******************************************************************************
+#/******************************************************************************
 #* Portions Copyright (C) 2007 Novell, Inc. All rights reserved.
 #*
 #* Redistribution and use in source and binary forms, with or without
@@ -37,12 +37,10 @@ Constant_Value = 50
 
 def Random_Numbers(name):
     '''Return a random number.'''
-    global Random_Max
-    return int(random.uniform(0,Random_Max))
+    return int(random.uniform(0, Random_Max))
 
 def Constant_Number(name):
     '''Return a constant number.'''
-    global Constant_Value
     return int(Constant_Value)
 
 def metric_init(params):
@@ -52,15 +50,15 @@ def metric_init(params):
     global Random_Max
     global Constant_Value
     random.seed()
-    
+
     print '[pyexample] Received the following parameters'
     print params
-    
+
     if 'RandomMax' in params:
         Random_Max = int(params['RandomMax'])
     if 'ConstantValue' in params:
         Constant_Value = int(params['ConstantValue'])
-    
+
     d1 = {'name': 'PyRandom_Numbers',
         'call_back': Random_Numbers,
         'time_max': 90,
@@ -80,14 +78,14 @@ def metric_init(params):
         'format': '%hu',
         'description': 'Example module metric (constant number)'}
 
-    descriptors = [d1,d2]
+    descriptors = [d1, d2]
     return descriptors
 
 def metric_cleanup():
     '''Clean up the metric module.'''
     pass
 
-#This code is for debugging and unit testing    
+#This code is for debugging and unit testing
 if __name__ == '__main__':
     params = {'RandomMax': '500',
         'ConstantValue': '322'}

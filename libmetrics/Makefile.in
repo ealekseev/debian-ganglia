@@ -233,13 +233,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = @OS@ . tests
-DIST_SUBDIRS = aix cygwin darwin dragonfly freebsd hpux irix linux netbsd openbsd osf solaris tests
+SUBDIRS = @OS@ tests
+DIST_SUBDIRS = aix cygwin darwin dragonfly freebsd hpux irix linux mingw netbsd openbsd osf solaris tests
+EXTRA_DIST = bootstrap
 AM_CFLAGS = -I../lib -I../include
 noinst_LTLIBRARIES = libmetrics.la
 libmetrics_la_SOURCES = libmetrics.c libmetrics.h \
-interface.c interface.h \
-get_ifi_info.c unpifi.h
+                        interface.c interface.h \
+                        get_ifi_info.c unpifi.h
 
 libmetrics_la_LIBADD = @OS@/libmetric25.la
 all: config.h
@@ -253,15 +254,15 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
-	      echo ' cd $(srcdir) && $(AUTOMAKE) --gnu'; \
-	      $(am__cd) $(srcdir) && $(AUTOMAKE) --gnu \
+	      echo ' cd $(srcdir) && $(AUTOMAKE) --foreign'; \
+	      $(am__cd) $(srcdir) && $(AUTOMAKE) --foreign \
 		&& exit 0; \
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu Makefile
+	  $(AUTOMAKE) --foreign Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

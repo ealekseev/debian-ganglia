@@ -1,28 +1,28 @@
-# $Id$
 #
 
 include $(top_srcdir)/ganglia.inc
 
 if BUILD_GMETAD
-GMETAD_SUBDIR = gmetad web
+GMETAD_SUBDIR = gmetad
 else
 GMETAD_SUBDIR = 
 endif
 
-EXTRA_SUBDIRS = "contrib solaris"
-EXTRA_DIST_FILES = 
+EXTRA_SUBDIRS = "gmetad-python contrib solaris"
 INCLUDES = @APR_INCLUDES@
 
 AUTOMAKE_OPTIONS = dist-bzip2 dist-tarZ dist-zip
 
-GANGLIA_SUBDIRS = lib libmetrics tests $(GMETAD_SUBDIR) gmond gstat gmetric include
+GANGLIA_SUBDIRS = lib libmetrics tests $(GMETAD_SUBDIR) gmond gstat gmetric include mans
 SUBDIRS = $(GANGLIA_SUBDIRS)
 # Make sure that no matter the setting for --with-gmetad
 # that the gmetad directory gets distributed
-GANGLIA_SUBDIRS_DIST = lib libmetrics tests gmetad web gmond gstat gmetric include
+GANGLIA_SUBDIRS_DIST = lib libmetrics tests gmetad gmond gstat gmetric include mans
 DIST_SUBDIRS = $(GANGLIA_SUBDIRS_DIST) 
 
-EXTRA_DIST = README.WIN README.AIX ganglia.spec.aix ganglia.spec ganglia.pod ganglia.html mans ganglia-config.in $(EXTRA_DIST_FILES)
+EXTRA_DIST = BUGS README.WIN README.AIX README.GIT ganglia.spec.aix ganglia.spec ganglia.pod ganglia.html ganglia-config.in \
+	WiX Makefile.WiX \
+	scripts
 
 ganglia.sub: ganglia.pod
 	sed -e 's/GANGLIA_VERSION/@VERSION@/' < $(srcdir)/ganglia.pod > ganglia.sub
@@ -36,24 +36,16 @@ ganglia.html: ganglia.sub
 README: ganglia.sub
 	pod2text ganglia.sub README
 
-CHANGE_LOG_GEN_BIN = scripts/svn2cl.sh
-CHANGE_LOG_GEN_FLAGS = -i --alternate-strip-prefix="/trunk/monitor-core/" --break-before-msg=1 --reparagraph --revision HEAD:1
-
-ChangeLog:
-	touch ChangeLog
-#	$(CHANGE_LOG_GEN_BIN) $(CHANGE_LOG_GEN_FLAGS)
-
 CLEANFILES = ganglia.sub pod2htm*
 
-dist-local: README ganglia.html ChangeLog
-
+dist-local: README ganglia.html
 
 # We go through and make sure all the files have
 # the same timestamp with the last command here...
 dist-hook:
 	for subdir in $(EXTRA_SUBDIRS); do \
 	  tar -c --exclude=".libs" --exclude "core.*" \
-	  --exclude ".svn" --exclude="*.o"  --exclude="*.lo" \
+	  --exclude="*.o"  --exclude="*.lo" \
 	  --exclude="*.la" --exclude=".deps" \
 	  --exclude="Makefile" --exclude="libtool" \
 	  --exclude="config.h" \
@@ -64,7 +56,6 @@ dist-hook:
 	  --exclude="configure.lineno" --exclude="configure.status.lineno" \
 	  -f - $$subdir | (cd $(distdir) && tar -xf -)\
 	done;
-	find $(distdir) -name ".svn" -type d -prune -exec rm -rf {} \;
 	touch $(distdir)/Makefile.am
 	find $(distdir) -exec touch -r $(distdir)/Makefile.am {} \;
 
@@ -75,19 +66,18 @@ dist-hook:
 ganglia-config:	ganglia-config.in $(FIXCONFIG)
 	$(FIXCONFIG) ganglia-config.in
 
-install-exec-hook:	ganglia-config
+install-exec-hook: ganglia-config
 	mkdir -p $(DESTDIR)$(bindir) && \
 	  $(INSTALL_SCRIPT) ganglia-config $(DESTDIR)$(bindir)/ganglia-config
 
-contrib/ganglia_gmond.xml:	contrib/ganglia_gmond.xml.in $(FIXCONFIG)
+contrib/ganglia_gmond.xml: contrib/ganglia_gmond.xml.in $(FIXCONFIG)
 	$(FIXCONFIG) contrib/ganglia_gmond.xml.in
 
-solaris/pkginfo:	solaris/pkginfo.in $(FIXCONFIG)
+solaris/pkginfo: solaris/pkginfo.in $(FIXCONFIG)
 	$(FIXCONFIG) solaris/pkginfo.in
 
 # Notice that some files declared in this hook never get installed anywhere
 # We use the hook to force the files to be generated, but they remain
 # within the build tree for someone to inspect or manually copy to
 # the desired location if needed
-install-data-hook:	contrib/ganglia_gmond.xml solaris/pkginfo
-
+install-data-hook: contrib/ganglia_gmond.xml solaris/pkginfo

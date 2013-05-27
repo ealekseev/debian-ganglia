@@ -34,11 +34,13 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(top_srcdir)/ganglia.inc
+DIST_COMMON = $(dist_man_MANS) $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in $(top_srcdir)/ganglia.inc
 @BUILD_PYTHON_TRUE@@STATIC_BUILD_TRUE@am__append_1 = modules/python/mod_python.lo
 @BUILD_PYTHON_TRUE@@STATIC_BUILD_TRUE@am__append_2 = -lpython@PYTHON_VERSION@
+@BUILD_SFLOW_TRUE@am__append_3 = -DSFLOW
 sbin_PROGRAMS = gmond$(EXEEXT)
+@BUILD_SFLOW_TRUE@am__append_4 = sflow.h sflow.c sflow_gmetric.h
 subdir = gmond
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
@@ -49,10 +51,14 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(sbindir)"
+am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man5dir)"
 PROGRAMS = $(sbin_PROGRAMS)
+am__gmond_SOURCES_DIST = gmond.c cmdline.c.in cmdline.c cmdline.h \
+	dtd.h g25_config.c core_metrics.c g25_config.h \
+	gmond_internal.h sflow.h sflow.c sflow_gmetric.h
+@BUILD_SFLOW_TRUE@am__objects_1 = sflow.$(OBJEXT)
 am_gmond_OBJECTS = gmond.$(OBJEXT) cmdline.$(OBJEXT) \
-	g25_config.$(OBJEXT) core_metrics.$(OBJEXT)
+	g25_config.$(OBJEXT) core_metrics.$(OBJEXT) $(am__objects_1)
 gmond_OBJECTS = $(am_gmond_OBJECTS)
 @STATIC_BUILD_TRUE@am__DEPENDENCIES_1 = modules/disk/mod_disk.lo \
 @STATIC_BUILD_TRUE@	modules/cpu/mod_cpu.lo \
@@ -80,7 +86,7 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(gmond_SOURCES)
-DIST_SOURCES = $(gmond_SOURCES)
+DIST_SOURCES = $(am__gmond_SOURCES_DIST)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -88,6 +94,30 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	install-pdf-recursive install-ps-recursive install-recursive \
 	installcheck-recursive installdirs-recursive pdf-recursive \
 	ps-recursive uninstall-recursive
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+man5dir = $(mandir)/man5
+NROFF = nroff
+MANS = $(dist_man_MANS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
@@ -154,6 +184,7 @@ GANGLIA_MICRO_VERSION = @GANGLIA_MICRO_VERSION@
 GANGLIA_MINOR_VERSION = @GANGLIA_MINOR_VERSION@
 GANGLIA_VERSION = @GANGLIA_VERSION@
 GREP = @GREP@
+GWEB_VERSION = @GWEB_VERSION@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -189,6 +220,7 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_VERSION = @PYTHON_VERSION@
@@ -223,6 +255,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gsysconfdir = @gsysconfdir@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -259,9 +292,9 @@ top_srcdir = @top_srcdir@
 varstatedir = @varstatedir@
 FIXCONFIG = $(top_srcdir)/scripts/fixconfig
 SUBDIRS = modules python_modules
-EXTRA_DIST = gmond.aix.init gmond.solaris.init.in gmond.init gmond.init.SuSE gmond.conf.5 gmond.conf.html conf.pod
-@STATIC_BUILD_FALSE@GCFLAGS = -D_LARGEFILE64_SOURCE
-@STATIC_BUILD_TRUE@GCFLAGS = -D_LARGEFILE64_SOURCE
+EXTRA_DIST = gmond.aix.init gmond.solaris.init.in gmond.init gmond.init.SuSE gmond.conf.5 gmond.conf.html conf.pod cmdline.sh
+@STATIC_BUILD_FALSE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_3)
+@STATIC_BUILD_TRUE@GCFLAGS = -D_LARGEFILE64_SOURCE $(am__append_3)
 @BUILD_STATUS_TRUE@@STATIC_BUILD_TRUE@MOD_GSTATUS = modules/status/mod_gstatus.lo
 @STATIC_BUILD_FALSE@GLDADD = 
 @STATIC_BUILD_TRUE@GLDADD = modules/disk/mod_disk.lo \
@@ -276,20 +309,25 @@ EXTRA_DIST = gmond.aix.init gmond.solaris.init.in gmond.init gmond.init.SuSE gmo
 @STATIC_BUILD_FALSE@GLDFLAGS = @EXPORT_SYMBOLS_DYNAMIC@
 @STATIC_BUILD_TRUE@GLDFLAGS = -static @EXPORT_SYMBOLS@ $(am__append_2)
 INCLUDES = @APR_INCLUDES@
-AM_CFLAGS = -I$(top_builddir)/lib -I$(top_builddir)/include/ -I$(top_builddir)/libmetrics $(GCFLAGS) -DSYSCONFDIR='"$(sysconfdir)"'
+AM_CFLAGS = -I$(top_builddir)/lib -I$(top_builddir)/include/ -I$(top_builddir)/libmetrics $(GCFLAGS)
+
 # metric.h and dtd.h are for gmetad/gmetric for now....
-gmond_SOURCES = gmond.c cmdline.c cmdline.h dtd.h g25_config.c core_metrics.c g25_config.h
-noinst_MANS = gmond.conf.5
+gmond_SOURCES = gmond.c cmdline.c.in cmdline.c cmdline.h dtd.h \
+	g25_config.c core_metrics.c g25_config.h gmond_internal.h \
+	$(am__append_4)
+dist_man_MANS = gmond.conf.5
 
 #monitor.c server.c listen.c cleanup.c \
 #metric.h dtd.h 
 gmond_LDADD = $(top_builddir)/libmetrics/libmetrics.la \
-		$(top_builddir)/lib/libganglia.la \
-	        $(top_builddir)/lib/libgetopthelper.a \
-		$(GLDADD)
+              $(top_builddir)/lib/libganglia.la \
+              $(top_builddir)/lib/libgetopthelper.a \
+              $(GLDADD)
 
 gmond_DEPENDENCIES = $(gmond_LDADD)
 gmond_LDFLAGS = $(GLDFLAGS)
+#	$(INSTALL_SCRIPT) gmond.solaris.init
+CLEANFILES = cmdline.c	
 all: all-recursive
 
 .SUFFIXES:
@@ -303,9 +341,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/ganglia.inc $(am__co
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu gmond/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign gmond/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu gmond/Makefile
+	  $(AUTOMAKE) --foreign gmond/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -381,6 +419,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_metrics.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/g25_config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gmond.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sflow.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -408,6 +447,44 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-man5: $(dist_man_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man5dir)" || $(MKDIR_P) "$(DESTDIR)$(man5dir)"
+	@list=''; test -n "$(man5dir)" || exit 0; \
+	{ for i in $$list; do echo "$$i"; done; \
+	l2='$(dist_man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.5[a-z]*$$/p'; \
+	} | while read p; do \
+	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; echo "$$p"; \
+	done | \
+	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^5][0-9a-z]*$$,5,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
+	sed 'N;N;s,\n, ,g' | { \
+	list=; while read file base inst; do \
+	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
+	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man5dir)/$$inst'"; \
+	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man5dir)/$$inst" || exit $$?; \
+	  fi; \
+	done; \
+	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
+	while read files; do \
+	  test -z "$$files" || { \
+	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man5dir)'"; \
+	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man5dir)" || exit $$?; }; \
+	done; }
+
+uninstall-man5:
+	@$(NORMAL_UNINSTALL)
+	@list=''; test -n "$(man5dir)" || exit 0; \
+	files=`{ for i in $$list; do echo "$$i"; done; \
+	l2='$(dist_man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.5[a-z]*$$/p'; \
+	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^5][0-9a-z]*$$,5,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
+	test -z "$$files" || { \
+	  echo " ( cd '$(DESTDIR)$(man5dir)' && rm -f" $$files ")"; \
+	  cd "$(DESTDIR)$(man5dir)" && rm -f $$files; }
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -545,6 +622,19 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
+	@list='$(MANS)'; if test -n "$$list"; then \
+	  list=`for p in $$list; do \
+	    if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	    if test -f "$$d$$p"; then echo "$$d$$p"; else :; fi; done`; \
+	  if test -n "$$list" && \
+	    grep 'ab help2man is required to generate this page' $$list >/dev/null; then \
+	    echo "error: found man pages containing the \`missing help2man' replacement text:" >&2; \
+	    grep -l 'ab help2man is required to generate this page' $$list | sed 's/^/         /' >&2; \
+	    echo "       to fix them, install help2man, remove and regenerate the man pages;" >&2; \
+	    echo "       typically \`make maintainer-clean' will remove them" >&2; \
+	    exit 1; \
+	  else :; fi; \
+	else :; fi
 	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
 	list='$(DISTFILES)'; \
@@ -604,10 +694,10 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(PROGRAMS) $(MANS)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(sbindir)"; do \
+	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man5dir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -627,6 +717,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -658,7 +749,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am:
+install-data-am: install-man
 
 install-dvi: install-dvi-recursive
 
@@ -675,7 +766,7 @@ install-info: install-info-recursive
 
 install-info-am:
 
-install-man:
+install-man: install-man5
 
 install-pdf: install-pdf-recursive
 
@@ -705,7 +796,9 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-sbinPROGRAMS
+uninstall-am: uninstall-man uninstall-sbinPROGRAMS
+
+uninstall-man: uninstall-man5
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) ctags-recursive \
 	install-am install-exec-am install-strip tags-recursive
@@ -718,13 +811,13 @@ uninstall-am: uninstall-sbinPROGRAMS
 	install install-am install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-exec-hook \
 	install-html install-html-am install-info install-info-am \
-	install-man install-pdf install-pdf-am install-ps \
+	install-man install-man5 install-pdf install-pdf-am install-ps \
 	install-ps-am install-sbinPROGRAMS install-strip installcheck \
 	installcheck-am installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am \
-	uninstall-sbinPROGRAMS
+	tags tags-recursive uninstall uninstall-am uninstall-man \
+	uninstall-man5 uninstall-sbinPROGRAMS
 
 
 # Unfortunately, we can't do this here with a pattern rule because
@@ -736,13 +829,16 @@ uninstall-am: uninstall-sbinPROGRAMS
 # we want to generate - see the rule for ganglia-config in Makefile.am
 # for an example
 
+cmdline.c: cmdline.c.in $(FIXCONFIG)
+	$(FIXCONFIG) cmdline.c.in
+
 gmond.conf.5: conf.pod gmond.conf.html
 	pod2man --name="gmond.conf" --section=5 conf.pod --center="Ganglia Monitoring System" --release="ganglia/@VERSION@" > gmond.conf.5
 
 gmond.conf.html: conf.pod
 	pod2html --title="Ganglia Monitoring Daemon v@VERSION@ Configuration" --header --infile=conf.pod --outfile=gmond.conf.html
 
-gmond.solaris.init:   gmond.solaris.init.in $(FIXCONFIG)
+gmond.solaris.init:	gmond.solaris.init.in $(FIXCONFIG)
 	$(FIXCONFIG) gmond.solaris.init.in
 
 # we declare the hook so that gmond.solaris.init will be created within the
@@ -750,8 +846,7 @@ gmond.solaris.init:   gmond.solaris.init.in $(FIXCONFIG)
 # however, the action to install it is commented out, as it is likely
 # the SA will use some other script to put this file into a package or
 # something
-install-exec-hook:    gmond.solaris.init
-#     $(INSTALL_SCRIPT) gmond.solaris.init
+install-exec-hook:	gmond.solaris.init
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

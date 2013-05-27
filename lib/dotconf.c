@@ -90,7 +90,7 @@ static configoption_t dotconf_options[] =
 	LAST_CONTEXT_OPTION
 };
 
-static void skip_whitespace(char **cp, int n, char term)
+static void safe_skip_whitespace(char **cp, int n, char term)
 {
 	char *cp1 = *cp;
 	while(isspace((int)*cp1) && *cp1 != term && n--)
@@ -387,7 +387,7 @@ char *dotconf_read_arg(configfile_t *configfile, char **line)
 	if (*cp1 == '#' || !*cp1)
 		return NULL;
 
-	skip_whitespace(&cp1, CFG_MAX_VALUE, 0);
+	safe_skip_whitespace(&cp1, CFG_MAX_VALUE, 0);
 
 	while ((*cp1 != '\0') && (cp2 != eos) && !done) {
 		switch (*cp1) {
@@ -510,7 +510,7 @@ void dotconf_set_command(configfile_t *configfile, const configoption_t *option,
 		char *cp = args;
 
 		/* check if it's a here-document and act accordingly */
-		skip_whitespace(&cp, (long)eob - (long)cp, 0);
+		safe_skip_whitespace(&cp, (long)eob - (long)cp, 0);
 
 		if (!strncmp("<<", cp, 2)) {
 			cmd->data.str = dotconf_get_here_document(configfile, cp + 2);
@@ -521,7 +521,7 @@ void dotconf_set_command(configfile_t *configfile, const configoption_t *option,
 	if (!(option->type == ARG_STR && cmd->data.str != 0)) {
 		/* we only get here for non-heredocument lines */
 
-		skip_whitespace(&args, eob - args, 0);
+		safe_skip_whitespace(&args, eob - args, 0);
 
 		cmd->arg_count = 0;
 		while ( cmd->arg_count < (CFG_VALUES - 1)
@@ -529,7 +529,7 @@ void dotconf_set_command(configfile_t *configfile, const configoption_t *option,
 			cmd->arg_count++;
 		}
 
-		skip_whitespace(&args, eob - args, 0);
+		safe_skip_whitespace(&args, eob - args, 0);
 
 		if (cmd->arg_count && cmd->data.list[cmd->arg_count-1] && *args)
 			cmd->data.list[cmd->arg_count++] = strdup(args);
@@ -609,7 +609,7 @@ const char *dotconf_handle_command(configfile_t *configfile, char *buffer)
 	cp1 = buffer;
 	eob = cp1 + strlen(cp1);
 
-	skip_whitespace(&cp1, (long)eob - (long)cp1, 0);
+	safe_skip_whitespace(&cp1, (long)eob - (long)cp1, 0);
 
 	/* ignore comments and empty lines */
 	if (!cp1 || !*cp1 || *cp1 == '#' || *cp1 == '\n' || *cp1 == (char)EOF)
@@ -1038,7 +1038,11 @@ int dotconf_handle_question_mark(command_t* cmd, char* path, char* pre, char* ex
 					strncpy(new_pre,dirptr->d_name,(name_len > pre_len)?(pre_len+1):pre_len);
 					new_pre[(name_len > pre_len)?(pre_len+1):pre_len] = '\0';
 
+#ifdef HAVE_SNPRINTF
+					snprintf(new_path, new_path_len, "%s%s%s", path, new_pre, ext);
+#else
 					sprintf(new_path,"%s%s%s",path,new_pre,ext);
+#endif
 
 					if (strcmp(new_path,already_matched) == 0)
 					{
@@ -1219,7 +1223,11 @@ int dotconf_handle_star(command_t* cmd, char* path, char* pre, char* ext)
 					strcat(new_pre,new_ext);
 #endif
 
+#ifdef HAVE_SNPRINTF
+					snprintf(new_path, new_path_len, "%s%s%s",path, new_pre, t_ext);
+#else
 					sprintf(new_path,"%s%s%s",path,new_pre,t_ext);
+#endif
 
 					if (strcmp(new_path,already_matched) == 0)
 					{
@@ -1250,7 +1258,11 @@ int dotconf_handle_star(command_t* cmd, char* path, char* pre, char* ext)
 
 				}
 
+#ifdef HAVE_SNPRINTF
+				snprintf(new_path, new_path_len, "%s%s", path, dirptr->d_name);
+#else
 				sprintf(new_path,"%s%s",path,dirptr->d_name);
+#endif
 
 				if (access(new_path, R_OK))
 				{

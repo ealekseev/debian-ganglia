@@ -11148,8 +11148,6 @@ fi
 ac_cv_lib_nsl=ac_cv_lib_nsl_main
 
 
-
-
 # Checks for header files.
 ac_header_dirent=no
 for ac_hdr in dirent.h sys/ndir.h sys/dir.h ndir.h; do
@@ -11430,20 +11428,6 @@ if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 #define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
 
-fi
-
-done
-
-for ac_header in rpc/rpc.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "rpc/rpc.h" "ac_cv_header_rpc_rpc_h" "$ac_includes_default"
-if test "x$ac_cv_header_rpc_rpc_h" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_RPC_RPC_H 1
-_ACEOF
-
-else
-  as_fn_error $? "your system is missing the Sun RPC (ONC/RPC) libraries" "$LINENO" 5
 fi
 
 done
@@ -12757,7 +12741,6 @@ $as_echo "#define CLOSEDIR_VOID 1" >>confdefs.h
 
 fi
 
-#AC_FUNC_GETLOADAVG
 if test $ac_cv_c_compiler_gnu = yes; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $CC needs -traditional" >&5
 $as_echo_n "checking whether $CC needs -traditional... " >&6; }
@@ -13183,8 +13166,8 @@ $as_echo "#define LINUX 1" >>confdefs.h
 
 $as_echo "#define STAT_STATVFS 1" >>confdefs.h
 
-                ;;
-*ia64-*hpux*)   OS="hpux"
+		;;
+*ia64-*hpux*)	OS="hpux"
 		CFLAGS="$CFLAGS -D_PSTAT64 -D_HPUX_SOURCE"
 
 $as_echo "#define IA64 1" >>confdefs.h
@@ -13192,9 +13175,9 @@ $as_echo "#define IA64 1" >>confdefs.h
 
 $as_echo "#define HPUX 1" >>confdefs.h
 
-                ;;
+		;;
 *aix*)		OS="aix"
-                CFLAGS="$CFLAGS -D_ALL_SOURCE -DAIX"
+		CFLAGS="$CFLAGS -D_ALL_SOURCE -DAIX"
 		LDFLAGS="$LDFLAGS -Wl,-bexpfull"
 		if test "$ac_cv_lib_perfstat_perfstat_cpu_total" = yes ; then
 			CFLAGS="$CFLAGS -DHAVE_PERFSTAT"
@@ -13210,27 +13193,32 @@ $as_echo "#define AIX 1" >>confdefs.h
 		CFLAGS="$CFLAGS -D_HPUX_SOURCE"
 
 $as_echo "#define HPUX 1" >>confdefs.h
-;;
-*irix*)         OS="irix"
-                CFLAGS="$CFLAGS -D_IRIX_SOURCE"
+
+		;;
+*irix*)		OS="irix"
+		CFLAGS="$CFLAGS -D_IRIX_SOURCE"
 
 $as_echo "#define IRIX 1" >>confdefs.h
-;;
-*osf*)	 	OS="osf"
+
+		;;
+*osf*)		OS="osf"
 		CFLAGS="$CFLAGS -D_SOCKADDR_LEN"
 
 $as_echo "#define OSF 1" >>confdefs.h
-;;
-*darwin*) 	OS="darwin"
+
+		;;
+*darwin*)	OS="darwin"
 
 $as_echo "#define DARWIN 1" >>confdefs.h
-;;
+
+		;;
 *solaris*)	OS="solaris"
 		CFLAGS="$CFLAGS -DHAVE_STRERROR"
 
 $as_echo "#define SOLARIS 1" >>confdefs.h
-;;
-*freebsd*)      OS="freebsd"
+
+		;;
+*freebsd*)	OS="freebsd"
 
 $as_echo "#define FREEBSD 1" >>confdefs.h
 
@@ -13240,12 +13228,12 @@ $as_echo "#define FREEBSD 1" >>confdefs.h
 $as_echo "#define DRAGONFLYBSD 1" >>confdefs.h
 
 		;;
-*netbsd*)       OS="netbsd"
+*netbsd*)	OS="netbsd"
 
 $as_echo "#define NETBSD 1" >>confdefs.h
 
 		;;
-*openbsd*)      OS="openbsd"
+*openbsd*)	OS="openbsd"
 
 $as_echo "#define OPENBSD 1" >>confdefs.h
 
@@ -13255,10 +13243,15 @@ $as_echo "#define OPENBSD 1" >>confdefs.h
 $as_echo "#define CYGWIN 1" >>confdefs.h
 
 		;;
+*mingw*)	OS="mingw"
+
+$as_echo "#define MINGW 1" >>confdefs.h
+
+		;;
 esac
 
 
-ac_config_files="$ac_config_files Makefile tests/Makefile aix/Makefile cygwin/Makefile darwin/Makefile dragonfly/Makefile freebsd/Makefile hpux/Makefile irix/Makefile linux/Makefile netbsd/Makefile openbsd/Makefile osf/Makefile solaris/Makefile"
+ac_config_files="$ac_config_files Makefile tests/Makefile aix/Makefile cygwin/Makefile darwin/Makefile dragonfly/Makefile freebsd/Makefile hpux/Makefile irix/Makefile linux/Makefile mingw/Makefile netbsd/Makefile openbsd/Makefile osf/Makefile solaris/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -14245,6 +14238,7 @@ do
     "hpux/Makefile") CONFIG_FILES="$CONFIG_FILES hpux/Makefile" ;;
     "irix/Makefile") CONFIG_FILES="$CONFIG_FILES irix/Makefile" ;;
     "linux/Makefile") CONFIG_FILES="$CONFIG_FILES linux/Makefile" ;;
+    "mingw/Makefile") CONFIG_FILES="$CONFIG_FILES mingw/Makefile" ;;
     "netbsd/Makefile") CONFIG_FILES="$CONFIG_FILES netbsd/Makefile" ;;
     "openbsd/Makefile") CONFIG_FILES="$CONFIG_FILES openbsd/Makefile" ;;
     "osf/Makefile") CONFIG_FILES="$CONFIG_FILES osf/Makefile" ;;

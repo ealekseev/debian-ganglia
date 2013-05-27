@@ -36,14 +36,14 @@
 /* GANGLIA_MODULE_DIR */
 #undef GANGLIA_MODULE_DIR
 
-/* GANGLIA_NANO_VERSION */
-#undef GANGLIA_NANO_VERSION
-
 /* GANGLIA_VERSION_FULL */
 #undef GANGLIA_VERSION_FULL
 
 /* GSTATUS */
 #undef GSTATUS
+
+/* GSYSCONFDIR */
+#undef GSYSCONFDIR
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
@@ -138,9 +138,6 @@
 /* Define to 1 if you have the <net/if_dl.h> header file. */
 #undef HAVE_NET_IF_DL_H
 
-/* Define to 1 if you have the <net/if.h> header file. */
-#undef HAVE_NET_IF_H
-
 /* Define to 1 if you have the <net/raw.h> header file. */
 #undef HAVE_NET_RAW_H
 
@@ -155,6 +152,9 @@
 
 /* Define to 1 if you have the <pthread.h> header file. */
 #undef HAVE_PTHREAD_H
+
+/* Define to 1 if you have the <rpc/types.h> header file. */
+#undef HAVE_RPC_TYPES_H
 
 /* Define to 1 if you have the <rrd.h> header file. */
 #undef HAVE_RRD_H
@@ -197,9 +197,6 @@
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
-
-/* Define to 1 if you have the <sys/mount.h> header file. */
-#undef HAVE_SYS_MOUNT_H
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H

@@ -10,6 +10,9 @@ GCFLAGS = -D_LARGEFILE64_SOURCE
 GLDADD = 
 GLDFLAGS =
 endif
+if BUILD_SFLOW
+GCFLAGS += -DSFLOW
+endif
 
 INCLUDES = @APR_INCLUDES@
 AM_CFLAGS = -I.. -I. -I$(top_builddir)/include/ $(GCFLAGS) -DSYSCONFDIR='"$(sysconfdir)"'
@@ -18,12 +21,12 @@ include_HEADERS = gm_protocol.h
 
 EXTRA_DIST=gm_protocol.x
 gm_protocol_xdr.c gm_protocol.h: gm_protocol.x
-	rpcgen $<
+	rpcgen gm_protocol.x
 
 lib_LTLIBRARIES       = libganglia.la
 libganglia_la_SOURCES = gm_protocol_xdr.c gm_protocol.h \
 become_a_nobody.c become_a_nobody.h \
-debug_msg.c daemon_init.c daemon_init.h file.c file.h \
+debug_msg.c update_pidfile.c update_pidfile.h file.c \
 dotconf.c dotconf.h error_msg.c ganglia_priv.h \
 ganglia.c hash.c hash.h inetaddr.c llist.c llist.h \
 my_inet_ntop.c my_inet_ntop.h net.h rdwr.c rdwr.h readdir.c readdir.h tcp.c \

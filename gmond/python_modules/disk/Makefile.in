@@ -79,6 +79,7 @@ GANGLIA_MICRO_VERSION = @GANGLIA_MICRO_VERSION@
 GANGLIA_MINOR_VERSION = @GANGLIA_MINOR_VERSION@
 GANGLIA_VERSION = @GANGLIA_VERSION@
 GREP = @GREP@
+GWEB_VERSION = @GWEB_VERSION@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -114,6 +115,7 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_VERSION = @PYTHON_VERSION@
@@ -148,6 +150,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gsysconfdir = @gsysconfdir@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -182,7 +185,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 varstatedir = @varstatedir@
-pys = multidisk.py
+pys = diskfree.py diskstat.py multidisk.py
 EXTRA_DIST = $(pys)
 all: all-am
 
@@ -196,9 +199,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu gmond/python_modules/disk/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign gmond/python_modules/disk/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu gmond/python_modules/disk/Makefile
+	  $(AUTOMAKE) --foreign gmond/python_modules/disk/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

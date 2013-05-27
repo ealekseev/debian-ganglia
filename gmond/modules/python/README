@@ -101,11 +101,11 @@ follows:
     module {
       name = "python_module"
       path = "modpython.so"
-      params = "/usr/lib64/ganglia/python_modules"
+      params = "/usr/local/lib64/ganglia/python_modules"
     }
   }
 
-  include ('/etc/ganglia/conf.d/*.pyconf')
+  include ('/usr/local/etc/conf.d/*.pyconf')
 
 The most significant part of this configuration is the 'params'
 directive. The path that has been assigned to this directive will

@@ -2,9 +2,41 @@
 #include <string.h>
 
 #include "interface.h"
-#include "unpifi.h"
 
+#ifdef MINGW
+int
+get_min_mtu( void )
+{
+  DWORD ret, dwInterface, dwSize = 0;
+  PMIB_IFTABLE ifTable;
+  PMIB_IFROW ifRow;
+  unsigned min_mtu = 0;
 
+  dwSize = sizeof(MIB_IFTABLE);
+  ifTable = (PMIB_IFTABLE)malloc(dwSize);
+  while ((ret = GetIfTable(ifTable, &dwSize, 1)) == ERROR_INSUFFICIENT_BUFFER) {
+    ifTable = (PMIB_IFTABLE)realloc(ifTable, dwSize);
+  }
+
+  if (ret = NO_ERROR) {
+    for (dwInterface = 0; dwInterface < (ifTable -> dwNumEntries); dwInterface++) {
+      ifRow = &(ifTable -> table[dwInterface]);
+
+      if ((ifRow -> dwType != MIB_IF_TYPE_LOOPBACK) && (ifRow -> dwOperStatus ==MIB_IF_OPER_STATUS_OPERATIONAL)) {
+        if (min_mtu) {
+          if (ifRow -> dwMtu < min_mtu) {
+            min_mtu = ifRow -> dwMtu;
+          }
+        } else {
+          min_mtu = ifRow -> dwMtu;
+        }
+      }
+    }
+    free(ifTable);
+  }
+  return min_mtu;
+}
+#else
 int
 get_min_mtu( void )
 {
@@ -16,7 +48,7 @@ get_min_mtu( void )
 
   for(n = info; n; n = n->ifi_next)
     {
-      if(!min_mtu_set) 
+      if(!min_mtu_set)
         {
           min_mtu = n->ifi_mtu;
           min_mtu_set = 1;
@@ -30,57 +62,4 @@ get_min_mtu( void )
   free_ifi_info(info);
   return min_mtu;
 }
-
-struct ifi_info *
-get_first_multicast_interface ( void )
-{
-   struct ifi_info *info, *n;
-
-   info =  Get_ifi_info(AF_INET, 0);
-
-   for(n = info; n; n = n->ifi_next)
-    {
-      /* The interface must be UP, not loopback and multicast enabled */
-      if(! (n->ifi_flags & IFF_UP) )
-        {
-          continue;
-        }
-
-      if( n->ifi_flags & IFF_LOOPBACK )
-        {
-          continue;
-        } 
-
-      if(! (n->ifi_flags & IFF_MULTICAST) )
-        {
-          continue;
-        }
-
-      return n;
-    }
-   return NULL;
-}
-
-struct ifi_info *
-get_first_interface ( void )
-{
-   return Get_ifi_info(AF_INET, 0); 
-}
-
-struct ifi_info *
-get_interface ( char *name )
-{
-   struct ifi_info *info, *n;
-
-   info =  Get_ifi_info(AF_INET, 0);
-
-   for(n = info; n; n = n->ifi_next)
-    {
-       if(!strcmp( name, n->ifi_name))
-         {
-           return n;
-         }
-    }
-
-   return NULL;
-}
+#endif

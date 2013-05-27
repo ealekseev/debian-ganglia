@@ -82,7 +82,7 @@ such as whether is should daemonize, what user it should run as,
 whether is should send/receive date and such.  The B<globals>
 section has the following attributes: B<daemonize>, B<setuid>, B<user>,
 B<debug_level>, B<mute>, B<deaf>, B<allow_extra_data>, B<host_dmax>,
-B<cleanup_threshold>, B<gexec>, B<send_metadata_interval>
+B<host_tmax>, B<cleanup_threshold>, B<gexec>, B<send_metadata_interval>
 and B<module_dir>.
 
 For example,
@@ -92,6 +92,7 @@ For example,
     setuid = true
     user = nobody
     host_dmax = 3600
+    host_tmax = 40
   }
 
 The B<daemonize> attribute is a boolean.  When true, B<gmond> will 
@@ -123,6 +124,14 @@ a remote host has stopped reporting.  If B<host_dmax> is set to a
 positive number then B<gmond> will flush a host after it has not heard
 from it for B<host_dmax> seconds.  By the way, dmax means "delete max".
 
+The B<host_tmax> value is an integer with units in seconds. This value
+represents the maximum amount of time that B<gmond> should wait between
+updates from a host. As messages may get lost in the network, B<gmond>
+will consider the host as being down if it has not received any messages
+from it after 4 times this value. For example, if B<host_tmax> is set 
+to 20, the host will appear as down after 80 seconds with no messages
+from it. By the way, tmax means "timeout max".
+
 The B<cleanup_threshold> is the minimum amount of time before gmond
 will cleanup any hosts or metrics where B<tn> > B<dmax> a.k.a. expired
 data.
@@ -142,6 +151,10 @@ metrics that it currently supports. In multicast mode, this isn't a problem
 because any node can request the metadata of all other nodes in the cluster.
 However in unicast mode, a resend interval must be established. The interval
 value is the minimum number of seconds between resends.
+
+The B<override_hostname> and B<override_ip> parameters allow an arbitrary
+hostname and/or IP (hostname can be optionally specified without IP) to
+use when identifying metrics coming from this host.
 
 The B<module_dir> is an optional parameter indicating the directory where
 the DSO modules are to be located.  If absent, the value to use is set at
@@ -185,7 +198,7 @@ messages to the hosts specified.
 You could specify multiple unicast hosts for redundancy as B<gmond> will send
 UDP messages to all UDP channels.
 
-Be carefull though not to mix multicast and unicast attributes in the same
+Be careful though not to mix multicast and unicast attributes in the same
 udp_send_channel definition.
 
 For example...
@@ -202,6 +215,9 @@ For example...
 would configure gmond to send messages to two hosts.  The B<host> specification
 can be an IPv4/IPv6 address or a resolvable hostname.
 
+The B<ttl> attribute lets you modify the Time-To-Live (TTL) of outgoing messages
+(unicast or multicast).
+
 =head2 udp_recv_channel
 
 You can specify as many B<udp_recv_channel> sections as you like within the 
@@ -209,8 +225,9 @@ limits of memory and file descriptors.  If B<gmond> is configured B<deaf>
 this attribute will be ignored.
 
 The B<udp_recv_channel> section has following attributes:
-B<mcast_join>, B<bind>, B<port>, B<mcast_if>, B<family>.  The 
-B<udp_recv_channel> can also have an B<acl> definition (see
+B<mcast_join>, B<bind>, B<port>, B<mcast_if>, B<family>, B<retry_bind>
+and B<buffer>.
+The B<udp_recv_channel> can also have an B<acl> definition (see
 ACCESS CONTROL LISTS below).
 
 For example, the 2.5.x gmond ran with a single udp receive channel...
@@ -251,6 +268,52 @@ but gmond will continue working (this should rarely happen).
 Multicast Note: for multicast, specifying a B<bind> address with the same
 value used for B<mcast_join> will prevent unicast UDP messages to the same
 B<port> from being processed.
+
+The sFlow protocol (see http://www.sflow.org) can be used to collect
+a standard set of performance metrics from servers. For servers that
+don't include embedded sFlow agents, an open source sFlow agent is available
+on SourceForge (see http://host-sflow.sourceforge.net).
+
+To configure B<gmond> to receive sFlow datagrams, simply
+add a B<udp_recv_channel> with the B<port> set to 6343 (the IANA registered
+port for sFlow):
+
+  udp_recv_channel {
+    port = 6343
+  }
+
+Note: sFlow is unicast protocol, so don't include B<mcast_join> join.
+Note: To use some other port for sFlow, set it here and then specify the port
+in an B<sflow> section (see below).
+
+B<gmond> will fail to run if it can't bind to all defined
+B<udp_recv_channel>s.  Sometimes, on machines configured by DHCP,
+for example, the B<gmond> daemon starts before a network address is
+assigned to the interface.  Consequently, the bind fails and the 
+B<gmond> daemon does not run.  To assist in this situation, the
+boolean parameter B<retry_bind> can be set to the value B<true>
+and then the daemon will not abort on failure, it will enter a
+loop and repeat the bind attempt every 60 seconds:
+
+  udp_recv_channel {
+    port = 6343
+    retry_bind = true
+  }
+
+If you have a large system with lots of metrics, you might experience
+UDP drops. This happens when B<gmond> is not able to process the UDP
+fast enough from the network. In this case you might consider changing
+your setup into a more distributed setup using aggregator B<gmond> hosts.
+Alternatively you can choose to create a bigger receive B<buffer>:
+
+  udp_recv_channel {
+    port = 6343
+    buffer = 10485760
+  }
+B<buffer> is specified in bytes, i.e.: 10485760 will allow 10MB UDP 
+to be buffered in memory.
+
+Note: increasing buffer size will increase memory usage by B<gmond>
 
 =head2 tcp_accept_channel
 
@@ -295,9 +358,9 @@ If your IPv6 stack doesn't support IPV6_V6ONLY, a warning will be issued
 but gmond will continue working (this should rarely happen).
 
 The B<timeout> attribute allows you to specify how many microseconds to block
-before closing a connection to a client.  The default is set to 1 second
-(1000000 usecs).  If you have a very slow connection you may need to increase
-this value.
+before closing a connection to a client.  The default is set to -1 (blocking
+IO) and will never abort a connection regardless of how slow the client is
+in fetching the report data.
 
 The B<interface> is not implemented at this time (use B<bind>).
 
@@ -431,6 +494,7 @@ metrics can be discovered by invoking B<gmond -m>.
    modules {
      module {
        name = "example_module"
+       language = "C/C++"
        enabled = yes
        path = "modexample.so"
        params = "An extra raw parameter"
@@ -442,6 +506,52 @@ metrics can be discovered by invoking B<gmond -m>.
        }
      }
    }
+
+=head2 sFlow
+
+The B<sflow> group is optional and has the following optional
+attributes: B<udp_port>, B<accept_vm_metrics>, B<accept_http_metrics>,
+B<accept_memcache_metrics>, B<accept_jvm_metrics>,
+B<multiple_http_instances>,B<multiple_memcache_instances>,
+B<multiple_jvm_instances>. By default, a
+B<udp_recv_channel> on port 6343 (the IANA registered port for
+sFlow) is all that is required to accept and process sFlow
+datagrams.  To receive sFlow on some other port requires both
+a B<udp_recv_channel> for the other port and a B<udp_port>
+setting here. For example:
+
+   udp_recv_channel {
+     port = 7343
+   }
+
+   sflow {
+     udp_port = 7343
+   }
+
+An sFlow agent running on a hypervisor may also be sending
+metrics for its local virtual machines.  By default these
+metrics are ignored, but the B<accept_vm_metrics> flag can
+be used to accept those metrics too,  and prefix them with
+an identifier for each virtual machine.
+
+   sflow {
+     accept_vm_metrics = yes
+   }
+
+The sFlow feed may also contain metrics sent from HTTP or memcached
+servers,  or from Java VMs.  Extra options can be used to ignore
+or accept these metrics,  and to indicate that there may be multiple
+instances per host.  For example:
+
+    sflow {
+      accept_http_metrics = yes
+      multiple_http_instances = yes
+    }
+
+will allow the HTTP metrics, and also mark them with a distinguishing
+identifier so that each instance can be trended separately.  (If multiple
+instances are reporting and this flag is not set,  the results are likely
+to be garbled.)
 
 =head2 Include
 
@@ -525,6 +635,10 @@ a useful starting point for creating your own custom configuration.
 edit B<custom.conf> to taste and then
 
   % gmond -c ./custom.conf
+
+=head1 SEE ALSO
+
+gmond(1).
 
 =head1 NOTES
 

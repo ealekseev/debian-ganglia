@@ -34,9 +34,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(top_srcdir)/ganglia.inc
 bin_PROGRAMS = gmetric$(EXEEXT)
 subdir = gmetric
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/configure.in
@@ -107,6 +108,7 @@ GANGLIA_MICRO_VERSION = @GANGLIA_MICRO_VERSION@
 GANGLIA_MINOR_VERSION = @GANGLIA_MINOR_VERSION@
 GANGLIA_VERSION = @GANGLIA_VERSION@
 GREP = @GREP@
+GWEB_VERSION = @GWEB_VERSION@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -142,6 +144,7 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
 PYTHON_BIN = @PYTHON_BIN@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_VERSION = @PYTHON_VERSION@
@@ -176,6 +179,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gsysconfdir = @gsysconfdir@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -210,25 +214,29 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 varstatedir = @varstatedir@
+FIXCONFIG = $(top_srcdir)/scripts/fixconfig
 @STATIC_BUILD_FALSE@GCFLAGS = 
 @STATIC_BUILD_TRUE@GCFLAGS = 
 @STATIC_BUILD_FALSE@GLDADD = 
 @STATIC_BUILD_TRUE@GLDADD = 
 @STATIC_BUILD_FALSE@GLDFLAGS = 
 @STATIC_BUILD_TRUE@GLDFLAGS = -static
-AM_CFLAGS = -I../lib -I../include $(GCFLAGS) -DSYSCONFDIR='"$(sysconfdir)"'
-gmetric_SOURCES = gmetric.c cmdline.c cmdline.h
+INCLUDES = @APR_INCLUDES@
+AM_CFLAGS = -I../lib -I../include $(GCFLAGS)
+gmetric_SOURCES = gmetric.c cmdline.c.in cmdline.c cmdline.h
 gmetric_LDADD = $(top_builddir)/lib/libganglia.la \
                    $(top_builddir)/lib/libgetopthelper.a \
 	           $(top_builddir)/libmetrics/libmetrics.la \
 		   $(GLDADD)
 
 gmetric_LDFLAGS = $(GLDFLAGS)
+CLEANFILES = cmdline.c
+EXTRA_DIST = cmdline.sh
 all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/ganglia.inc $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -237,9 +245,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu gmetric/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign gmetric/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu gmetric/Makefile
+	  $(AUTOMAKE) --foreign gmetric/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -447,6 +455,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -541,6 +550,18 @@ uninstall-am: uninstall-binPROGRAMS
 	pdf pdf-am ps ps-am tags uninstall uninstall-am \
 	uninstall-binPROGRAMS
 
+
+# Unfortunately, we can't do this here with a pattern rule because
+# that is a GNU make feature and is not fully portable
+#%:	%.in $(FIXCONFIG)
+#	$(FIXCONFIG) $<
+
+# For the moment, it is necessary to provide a rule for each file
+# we want to generate - see the rule for ganglia-config in Makefile.am
+# for an example
+
+cmdline.c: cmdline.c.in $(FIXCONFIG)
+	$(FIXCONFIG) cmdline.c.in
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

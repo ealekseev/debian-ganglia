@@ -1030,7 +1030,7 @@ static char *
 makenetvfslist(void)
 {
 	char *str = NULL, *strptr, **listptr = NULL;
-	size_t slen;
+	size_t slen = 0;
 	int cnt, i;
 
 	int mib[3], maxvfsconf;
@@ -1147,7 +1147,7 @@ get_netbw(double *in_bytes, double *out_bytes,
 			fprintf(stderr, "msglen = %d\n", ifm->ifm_msglen);
 			fprintf(stderr, "buf:%p, next:%p, lim:%p\n", buf, next,
 				lim);
-			exit (1);
+			goto output;
 		}
 
 		next += ifm->ifm_msglen;

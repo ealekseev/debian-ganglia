@@ -1,9 +1,14 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H 1
+
+#include "config.h"
+
+#ifdef MINGW
+#include <windows.h>
+#include <iphlpapi.h>
+#else
 #include "unpifi.h"
-struct ifi_info * get_first_multicast_interface ( void );
-struct ifi_info * get_first_interface ( void );
-struct ifi_info * get_interface ( char *name );
-void get_all_interfaces( void );
+#endif
+
 int get_min_mtu( void );
 #endif

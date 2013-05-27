@@ -1,4 +1,3 @@
-/* $Id$ */
 #include <stdio.h>
 #include <dotconf.h>
 #include "ganglia_priv.h"
@@ -253,7 +252,7 @@ print_config(char *path, gmond_config_t *config)
   fprintf(stdout,"/* global variables */\n");
   fprintf(stdout,"globals {\n  mute = \"%s\"\n  deaf = \"%s\"\n  allow_extra_data = \"%s\"\n  debug_level = \"%ld\"\n  setuid = \"%s\"\n  user=\"%s\"\n  gexec = \"%s\"\n  host_dmax = \"%ld\"\n}\n\n",
           config->mute? "yes":"no", 
-          config->deaf? "yes":"no", 
+          config->deaf? "yes":"no",
           config->allow_extra_data? "yes":"no", 
           config->debug_level, 
           config->no_setuid? "no":"yes",

@@ -1,10 +1,13 @@
 #ifndef GANGLIA_H
 #define GANGLIA_H 1
-#include <rpc/rpc.h>
 
-#include "gm_msg.h"
+#include <rpc/types.h>
+#include <rpc/xdr.h>
+
+#include <gm_msg.h>
 #ifndef GM_PROTOCOL_GUARD
-#include "gm_protocol.h"
+#include <netinet/in.h>
+#include <gm_protocol.h>
 #endif
 
 #define SPOOF "SPOOF"
@@ -17,7 +20,8 @@ enum ganglia_slope {
    GANGLIA_SLOPE_POSITIVE,
    GANGLIA_SLOPE_NEGATIVE,
    GANGLIA_SLOPE_BOTH,
-   GANGLIA_SLOPE_UNSPECIFIED
+   GANGLIA_SLOPE_UNSPECIFIED,
+   GANGLIA_SLOPE_DERIVATIVE
 };
 typedef enum ganglia_slope ganglia_slope_t;
 
@@ -51,6 +55,7 @@ Ganglia_metric Ganglia_metric_create( Ganglia_pool parent_pool );
 int Ganglia_metric_set( Ganglia_metric gmetric, char *name, char *value, char *type, char *units, unsigned int slope, unsigned int tmax, unsigned int dmax);
 int Ganglia_metric_send( Ganglia_metric gmetric, Ganglia_udp_send_channels send_channels );
 int Ganglia_metadata_send( Ganglia_metric gmetric, Ganglia_udp_send_channels send_channels );
+int Ganglia_metadata_send_real( Ganglia_metric gmetric, Ganglia_udp_send_channels send_channels, char *override_string );
 void Ganglia_metadata_add( Ganglia_metric gmetric, char *name, char *value );
 int Ganglia_value_send( Ganglia_metric gmetric, Ganglia_udp_send_channels send_channels );
 

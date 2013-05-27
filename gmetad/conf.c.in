@@ -198,6 +198,14 @@ static DOTCONF_CB(cb_server_threads)
    return NULL;
 }
 
+static DOTCONF_CB(cb_umask)
+{
+   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+   debug_msg("Setting umask to %.5o & 07077", cmd->data.value);
+   c->umask = cmd->data.value & 07077; /* protect owner permissions */
+   return NULL;
+}
+
 static DOTCONF_CB(cb_rrd_rootdir)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
@@ -222,7 +230,7 @@ static DOTCONF_CB(cb_setuid)
 }
 
 static DOTCONF_CB(cb_scalable)
-{  
+{
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
    debug_msg("Setting scalable = %s", cmd->data.str);
    if (!strcmp(cmd->data.str, "off"))
@@ -230,10 +238,51 @@ static DOTCONF_CB(cb_scalable)
    return NULL;
 }
 
+static DOTCONF_CB(cb_write_rrds)
+{
+   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+   debug_msg("Setting write_rrds = %s", cmd->data.str);
+   if (!strcmp(cmd->data.str, "off"))
+       c->write_rrds = cmd->data.value;
+   return NULL;
+}
+
 static DOTCONF_CB(cb_case_sensitive_hostnames)
 {
    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
    c->case_sensitive_hostnames = cmd->data.value;
+   return NULL;
+}
+
+static DOTCONF_CB(cb_carbon_server)
+{
+   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+   debug_msg("Enabling Graphite proxy to %s", cmd->data.str);
+   c->carbon_server = strdup (cmd->data.str);
+   return NULL;
+}
+
+static DOTCONF_CB(cb_carbon_port)
+{
+   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+   debug_msg("Setting carbon port to %d", cmd->data.value);
+   c->carbon_port = cmd->data.value;
+   return NULL;
+}
+
+static DOTCONF_CB(cb_carbon_timeout)
+{
+   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+   debug_msg("Setting carbon timeout to %d", cmd->data.value);
+   c->carbon_timeout = cmd->data.value;
+   return NULL;
+}
+
+static DOTCONF_CB(cb_graphite_prefix)
+{
+   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+   debug_msg("Enabling Graphite proxy to %s", cmd->data.str);
+   c->graphite_prefix = strdup (cmd->data.str);
    return NULL;
 }
 
@@ -254,12 +303,18 @@ static configoption_t gmetad_options[] =
       {"xml_port",  ARG_INT, cb_xml_port, &gmetad_config, 0},
       {"interactive_port", ARG_INT, cb_interactive_port, &gmetad_config, 0},
       {"server_threads", ARG_INT, cb_server_threads, &gmetad_config, 0},
+      {"umask", ARG_INT, cb_umask, &gmetad_config, 0},
       {"rrd_rootdir", ARG_STR, cb_rrd_rootdir, &gmetad_config, 0},
       {"setuid", ARG_TOGGLE, cb_setuid, &gmetad_config, 0},
       {"setuid_username", ARG_STR, cb_setuid_username, &gmetad_config, 0},
       {"scalable", ARG_STR, cb_scalable, &gmetad_config, 0},
+      {"write_rrds", ARG_STR, cb_write_rrds, &gmetad_config, 0},
       {"RRAs", ARG_LIST, cb_RRAs, &gmetad_config, 0},
       {"case_sensitive_hostnames", ARG_INT, cb_case_sensitive_hostnames, &gmetad_config, 0},
+      {"carbon_server", ARG_STR, cb_carbon_server, &gmetad_config, 0},
+      {"carbon_port", ARG_INT, cb_carbon_port, &gmetad_config, 0},
+      {"carbon_timeout", ARG_INT, cb_carbon_timeout, &gmetad_config, 0},
+      {"graphite_prefix", ARG_STR, cb_graphite_prefix, &gmetad_config, 0},
       LAST_OPTION
    };
 
@@ -271,19 +326,19 @@ set_defaults (gmetad_config_t *config)
    config->xml_port = 8651;
    config->interactive_port = 8652;
    config->server_threads = 4;
+   config->umask = 0;
    config->trusted_hosts = NULL;
    config->debug_level = 0;
    config->should_setuid = 1;
    config->setuid_username = "nobody";
    config->rrd_rootdir = "@varstatedir@/ganglia/rrds";
+   config->write_rrds = 1;
    config->scalable_mode = 1;
    config->all_trusted = 0;
-   config->num_RRAs = 5;
-   config->RRAs[0] = "RRA:AVERAGE:0.5:1:244";
-   config->RRAs[1] = "RRA:AVERAGE:0.5:24:244";
-   config->RRAs[2] = "RRA:AVERAGE:0.5:168:244";
-   config->RRAs[3] = "RRA:AVERAGE:0.5:672:244";
-   config->RRAs[4] = "RRA:AVERAGE:0.5:5760:374";
+   config->num_RRAs = 3;
+   config->RRAs[0] = "RRA:AVERAGE:0.5:1:5856";
+   config->RRAs[1] = "RRA:AVERAGE:0.5:4:20160";
+   config->RRAs[2] = "RRA:AVERAGE:0.5:40:52704";
    config->case_sensitive_hostnames = 1;
 }
 

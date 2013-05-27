@@ -839,8 +839,9 @@ static char *
 makenetvfslist(void)
 {
 	char *str = NULL, *strptr, **listptr = NULL;
-	size_t slen;
-	int cnt, i;
+	size_t slen = 0;
+	int cnt = 0;
+	int i;
 
 	int mib[3], maxvfsconf;
 	size_t miblen;
@@ -858,7 +859,6 @@ makenetvfslist(void)
 		goto done;
 	}
 
-	cnt = 0;
 	if (cnt == 0)
 		goto done;
 	/*
@@ -956,7 +956,7 @@ get_netbw(double *in_bytes, double *out_bytes,
 			fprintf(stderr, "msglen = %d\n", ifm->ifm_msglen);
 			fprintf(stderr, "buf:%p, next:%p, lim:%p\n", buf, next,
 				lim);
-			exit (1);
+			goto output;
 		}
 
 		next += ifm->ifm_msglen;

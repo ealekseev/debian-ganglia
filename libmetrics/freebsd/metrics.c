@@ -10,7 +10,7 @@
  * Tested on FreeBSD 7 (amd64)
  * Tested on FreeBSD 6.2 (amd64 and i386)
  * Tested on FreeBSD 5.5 (i386)
- *
+ * Tested on FreeBSD 8 (amd64)
  */
 
 #include <stdio.h>
@@ -24,12 +24,6 @@
 #include <sys/mount.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-/*
- * XXX: HACK HACK HACK - avoid including machine/pmap.h and things that
- * depend on it to avoid collision with struct pmap in rpc/pmap_prot.h. :-P
- */
-#define _MACHINE_PMAP_H_
-#define _VM_MAP_
 #include <sys/user.h>
 #if __FreeBSD_version < 500101
 #include <sys/dkstat.h>
@@ -170,9 +164,21 @@ cpu_speed_func ( void )
    size_t len;
    uint32_t freq = 0, tmpfreq;
    uint64_t tscfreq;
+   unsigned int cpu_freq;
 
    /*
-    * If the system supports it, the cpufreq driver provides the best
+    * Try the portable sysctl (introduced on ia64).
+    */
+   cpu_freq = 0;
+   len = sizeof(cpu_freq);
+   if (sysctlbyname("hw.freq.cpu", &cpu_freq, &len, NULL, 0) != -1 &&
+       cpu_freq != 0) {
+      freq = cpu_freq;
+      goto done;
+   }
+
+   /*
+    * If the system supports it, the cpufreq driver provides
     * access to CPU frequency.  Since we want a constant value, we're
     * looking for the maximum frequency, not the current one.  We
     * don't know what order the driver will report values in so we
@@ -529,6 +535,17 @@ proc_run_func( void )
       goto output;
 
    for (i = 0; i < nentries; kp++, i++) {
+      /* This is a per-CPU idle thread. */ /* idle thread */
+      if ((kp->ki_tdflags & TDF_IDLETD) != 0)
+         continue;
+      /* Ignore during load avg calculations. */ /* swi or idle thead */
+#ifdef TDF_NOLOAD
+      /* Introduced in FreeBSD 8.3 */
+      if ((kp->ki_tdflags & TDF_NOLOAD) != 0)
+#else
+      if ((kp->ki_flag & P_NOLOAD) != 0)
+#endif
+         continue;
 #ifdef KINFO_PROC_SIZE
       state = kp->ki_stat;
 #else
@@ -980,8 +997,8 @@ static char *
 makenetvfslist(void)
 {
 	char *str = NULL, *strptr, **listptr = NULL;
-	size_t slen;
-	int cnt, i;
+	size_t slen = 0;
+	int cnt = 0, i;
 
 #if __FreeBSD_version > 500000
 	struct xvfsconf *xvfsp, *keep_xvfsp = NULL;
@@ -1008,7 +1025,6 @@ makenetvfslist(void)
 		goto done;
 	}
 
-	cnt = 0;
 	for (i = 0; i < maxvfsconf; i++, xvfsp++) {
 		if (xvfsp->vfc_typenum == 0)
 			continue;
@@ -1040,7 +1056,6 @@ makenetvfslist(void)
 		goto done;
 	}
 
-	cnt = 0;
 	while ((ptr = getvfsent()) != NULL && cnt < maxvfsconf) {
 		if (ptr->vfc_flags & VFCF_NONLOCAL)
 			continue;
@@ -1159,7 +1174,7 @@ get_netbw(double *in_bytes, double *out_bytes,
 			fprintf(stderr, "msglen = %d\n", ifm->ifm_msglen);
 			fprintf(stderr, "buf:%p, next:%p, lim:%p\n", buf, next,
 				lim);
-			exit (1);
+			goto output;
 		}
 
 		next += ifm->ifm_msglen;

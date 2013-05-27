@@ -19,12 +19,6 @@
 #include <sys/mount.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-/*
- * XXX: HACK HACK HACK - avoid including machine/pmap.h and things that
- * depend on it to avoid collision with struct pmap in rpc/pmap_prot.h
- */
-#define _MACHINE_PMAP_H_
-#define _VM_VM_MAP_H_
 #include <sys/user.h>
 #include <kinfo.h>
 #include <sys/stat.h>
@@ -327,15 +321,15 @@ int cpu_state(int which) {
 output:
    switch (which) {
    case 0:
-      return (cp_diff.cp_user * 100LL + half_change) / total_change;
+      return (cp_diff.cp_user * 100 + half_change) / total_change;
    case 1:
-      return (cp_diff.cp_nice * 100LL + half_change) / total_change;
+      return (cp_diff.cp_nice * 100 + half_change) / total_change;
    case 2:
-      return (cp_diff.cp_sys * 100LL + half_change) / total_change;
+      return (cp_diff.cp_sys * 100 + half_change) / total_change;
    case 3:
-      return (cp_diff.cp_intr * 100LL + half_change) / total_change;
+      return (cp_diff.cp_intr * 100 + half_change) / total_change;
    case 4:
-      return (cp_diff.cp_idle * 100LL + half_change) / total_change;
+      return (cp_diff.cp_idle * 100 + half_change) / total_change;
    default:
       return 0;
    }
@@ -864,7 +858,7 @@ static char *
 makenetvfslist(void)
 {
 	char *str = NULL, *strptr, **listptr = NULL;
-	size_t slen;
+	size_t slen = 0;
 	int cnt, i;
 
 	int mib[3], maxvfsconf;
@@ -994,7 +988,7 @@ get_netbw(double *in_bytes, double *out_bytes,
 			fprintf(stderr, "msglen = %d\n", ifm->ifm_msglen);
 			fprintf(stderr, "buf:%p, next:%p, lim:%p\n", buf, next,
 				lim);
-			exit (1);
+			goto output;
 		}
 
 		next += ifm->ifm_msglen;

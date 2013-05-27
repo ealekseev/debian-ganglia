@@ -96,9 +96,6 @@
    and to 0 otherwise. */
 #undef HAVE_REALLOC
 
-/* Define to 1 if you have the <rpc/rpc.h> header file. */
-#undef HAVE_RPC_RPC_H
-
 /* We have a len attr in sockaddr */
 #undef HAVE_SOCKADDR_SA_LEN
 
@@ -220,6 +217,9 @@
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #undef LT_OBJDIR
+
+/* MINGW */
+#undef MINGW
 
 /* NETBSD */
 #undef NETBSD

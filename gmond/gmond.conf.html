@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>Ganglia Monitoring Daemon v3.1.8 Configuration</title>
+<title>Ganglia Monitoring Daemon v3.4.0 Configuration</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rev="made" href="mailto:root@localhost" />
 </head>
@@ -10,7 +10,7 @@
 <body style="background-color: white">
 <table border="0" width="100%" cellspacing="0" cellpadding="3">
 <tr><td class="block" style="background-color: #cccccc" valign="middle">
-<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.1.8 Configuration</span></strong></big>
+<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.4.0 Configuration</span></strong></big>
 </td></tr>
 </table>
 
@@ -34,11 +34,13 @@
 		<li><a href="#tcp_accept_channel">tcp_accept_channel</a></li>
 		<li><a href="#collection_group">collection_group</a></li>
 		<li><a href="#modules">Modules</a></li>
+		<li><a href="#sflow">sFlow</a></li>
 		<li><a href="#include">Include</a></li>
 	</ul>
 
 	<li><a href="#access_control">ACCESS CONTROL</a></li>
 	<li><a href="#example">EXAMPLE</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
 	<li><a href="#notes">NOTES</a></li>
 	<li><a href="#copyright">COPYRIGHT</a></li>
 </ul>
@@ -125,7 +127,7 @@ such as whether is should daemonize, what user it should run as,
 whether is should send/receive date and such.  The <strong>globals</strong>
 section has the following attributes: <strong>daemonize</strong>, <strong>setuid</strong>, <strong>user</strong>,
 <strong>debug_level</strong>, <strong>mute</strong>, <strong>deaf</strong>, <strong>allow_extra_data</strong>, <strong>host_dmax</strong>,
-<strong>cleanup_threshold</strong>, <strong>gexec</strong>, <strong>send_metadata_interval</strong>
+<strong>host_tmax</strong>, <strong>cleanup_threshold</strong>, <strong>gexec</strong>, <strong>send_metadata_interval</strong>
 and <strong>module_dir</strong>.</p>
 <p>For example,</p>
 <pre>
@@ -134,6 +136,7 @@ and <strong>module_dir</strong>.</p>
     setuid = true
     user = nobody
     host_dmax = 3600
+    host_tmax = 40
   }</pre>
 <p>The <strong>daemonize</strong> attribute is a boolean.  When true, <strong>gmond</strong> will 
 daemonize.  When false, <strong>gmond</strong> will run in the foreground.</p>
@@ -157,6 +160,13 @@ to zero (0), <strong>gmond</strong> will never delete a host from its list even 
 a remote host has stopped reporting.  If <strong>host_dmax</strong> is set to a
 positive number then <strong>gmond</strong> will flush a host after it has not heard
 from it for <strong>host_dmax</strong> seconds.  By the way, dmax means &quot;delete max&quot;.</p>
+<p>The <strong>host_tmax</strong> value is an integer with units in seconds. This value
+represents the maximum amount of time that <strong>gmond</strong> should wait between
+updates from a host. As messages may get lost in the network, <strong>gmond</strong>
+will consider the host as being down if it has not received any messages
+from it after 4 times this value. For example, if <strong>host_tmax</strong> is set 
+to 20, the host will appear as down after 80 seconds with no messages
+from it. By the way, tmax means &quot;timeout max&quot;.</p>
 <p>The <strong>cleanup_threshold</strong> is the minimum amount of time before gmond
 will cleanup any hosts or metrics where <strong>tn</strong> &gt; <strong>dmax</strong> a.k.a. expired
 data.</p>
@@ -174,6 +184,9 @@ metrics that it currently supports. In multicast mode, this isn't a problem
 because any node can request the metadata of all other nodes in the cluster.
 However in unicast mode, a resend interval must be established. The interval
 value is the minimum number of seconds between resends.</p>
+<p>The <strong>override_hostname</strong> and <strong>override_ip</strong> parameters allow an arbitrary
+hostname and/or IP (hostname can be optionally specified without IP) to
+use when identifying metrics coming from this host.</p>
 <p>The <strong>module_dir</strong> is an optional parameter indicating the directory where
 the DSO modules are to be located.  If absent, the value to use is set at
 configure time with the --with-moduledir option which will default if omitted
@@ -208,7 +221,7 @@ default hostname if <strong>bind_hostname</strong> = yes.</p>
 messages to the hosts specified.</p>
 <p>You could specify multiple unicast hosts for redundancy as <strong>gmond</strong> will send
 UDP messages to all UDP channels.</p>
-<p>Be carefull though not to mix multicast and unicast attributes in the same
+<p>Be careful though not to mix multicast and unicast attributes in the same
 udp_send_channel definition.</p>
 <p>For example...</p>
 <pre>
@@ -222,6 +235,8 @@ udp_send_channel definition.</p>
   }</pre>
 <p>would configure gmond to send messages to two hosts.  The <strong>host</strong> specification
 can be an IPv4/IPv6 address or a resolvable hostname.</p>
+<p>The <strong>ttl</strong> attribute lets you modify the Time-To-Live (TTL) of outgoing messages
+(unicast or multicast).</p>
 <p>
 </p>
 <h2><a name="udp_recv_channel">udp_recv_channel</a></h2>
@@ -229,8 +244,9 @@ can be an IPv4/IPv6 address or a resolvable hostname.</p>
 limits of memory and file descriptors.  If <strong>gmond</strong> is configured <strong>deaf</strong>
 this attribute will be ignored.</p>
 <p>The <strong>udp_recv_channel</strong> section has following attributes:
-<strong>mcast_join</strong>, <strong>bind</strong>, <strong>port</strong>, <strong>mcast_if</strong>, <strong>family</strong>.  The 
-<strong>udp_recv_channel</strong> can also have an <strong>acl</strong> definition (see
+<strong>mcast_join</strong>, <strong>bind</strong>, <strong>port</strong>, <strong>mcast_if</strong>, <strong>family</strong>, <strong>retry_bind</strong>
+and <strong>buffer</strong>.
+The <strong>udp_recv_channel</strong> can also have an <strong>acl</strong> definition (see
 ACCESS CONTROL LISTS below).</p>
 <p>For example, the 2.5.x gmond ran with a single udp receive channel...</p>
 <pre>
@@ -265,6 +281,46 @@ but gmond will continue working (this should rarely happen).</p>
 <p>Multicast Note: for multicast, specifying a <strong>bind</strong> address with the same
 value used for <strong>mcast_join</strong> will prevent unicast UDP messages to the same
 <strong>port</strong> from being processed.</p>
+<p>The sFlow protocol (see <a href="http://www.sflow.org)">http://www.sflow.org)</a> can be used to collect
+a standard set of performance metrics from servers. For servers that
+don't include embedded sFlow agents, an open source sFlow agent is available
+on SourceForge (see <a href="http://host-sflow.sourceforge.net).">http://host-sflow.sourceforge.net).</a></p>
+<p>To configure <strong>gmond</strong> to receive sFlow datagrams, simply
+add a <strong>udp_recv_channel</strong> with the <strong>port</strong> set to 6343 (the IANA registered
+port for sFlow):</p>
+<pre>
+  udp_recv_channel {
+    port = 6343
+  }</pre>
+<p>Note: sFlow is unicast protocol, so don't include <strong>mcast_join</strong> join.
+Note: To use some other port for sFlow, set it here and then specify the port
+in an <strong>sflow</strong> section (see below).</p>
+<p><strong>gmond</strong> will fail to run if it can't bind to all defined
+<strong>udp_recv_channel</strong>s.  Sometimes, on machines configured by DHCP,
+for example, the <strong>gmond</strong> daemon starts before a network address is
+assigned to the interface.  Consequently, the bind fails and the 
+<strong>gmond</strong> daemon does not run.  To assist in this situation, the
+boolean parameter <strong>retry_bind</strong> can be set to the value <strong>true</strong>
+and then the daemon will not abort on failure, it will enter a
+loop and repeat the bind attempt every 60 seconds:</p>
+<pre>
+  udp_recv_channel {
+    port = 6343
+    retry_bind = true
+  }</pre>
+<p>If you have a large system with lots of metrics, you might experience
+UDP drops. This happens when <strong>gmond</strong> is not able to process the UDP
+fast enough from the network. In this case you might consider changing
+your setup into a more distributed setup using aggregator <strong>gmond</strong> hosts.
+Alternatively you can choose to create a bigger receive <strong>buffer</strong>:</p>
+<pre>
+  udp_recv_channel {
+    port = 6343
+    buffer = 10485760
+  }
+B&lt;buffer&gt; is specified in bytes, i.e.: 10485760 will allow 10MB UDP 
+to be buffered in memory.</pre>
+<p>Note: increasing buffer size will increase memory usage by <strong>gmond</strong></p>
 <p>
 </p>
 <h2><a name="tcp_accept_channel">tcp_accept_channel</a></h2>
@@ -302,9 +358,9 @@ and security reasons).  If you want to listen on both <strong>inet4</strong> and
 If your IPv6 stack doesn't support IPV6_V6ONLY, a warning will be issued
 but gmond will continue working (this should rarely happen).</p>
 <p>The <strong>timeout</strong> attribute allows you to specify how many microseconds to block
-before closing a connection to a client.  The default is set to 1 second
-(1000000 usecs).  If you have a very slow connection you may need to increase
-this value.</p>
+before closing a connection to a client.  The default is set to -1 (blocking
+IO) and will never abort a connection regardless of how slow the client is
+in fetching the report data.</p>
 <p>The <strong>interface</strong> is not implemented at this time (use <strong>bind</strong>).</p>
 <p>
 </p>
@@ -424,6 +480,7 @@ metrics can be discovered by invoking <strong>gmond -m</strong>.</p>
    modules {
      module {
        name = &quot;example_module&quot;
+       language = &quot;C/C++&quot;
        enabled = yes
        path = &quot;modexample.so&quot;
        params = &quot;An extra raw parameter&quot;
@@ -435,6 +492,49 @@ metrics can be discovered by invoking <strong>gmond -m</strong>.</p>
        }
      }
    }</pre>
+<p>
+</p>
+<h2><a name="sflow">sFlow</a></h2>
+<p>The <strong>sflow</strong> group is optional and has the following optional
+attributes: <strong>udp_port</strong>, <strong>accept_vm_metrics</strong>, <strong>accept_http_metrics</strong>,
+<strong>accept_memcache_metrics</strong>, <strong>accept_jvm_metrics</strong>,
+<strong>multiple_http_instances</strong>,<strong>multiple_memcache_instances</strong>,
+<strong>multiple_jvm_instances</strong>. By default, a
+<strong>udp_recv_channel</strong> on port 6343 (the IANA registered port for
+sFlow) is all that is required to accept and process sFlow
+datagrams.  To receive sFlow on some other port requires both
+a <strong>udp_recv_channel</strong> for the other port and a <strong>udp_port</strong>
+setting here. For example:</p>
+<pre>
+   udp_recv_channel {
+     port = 7343
+   }</pre>
+<pre>
+   sflow {
+     udp_port = 7343
+   }</pre>
+<p>An sFlow agent running on a hypervisor may also be sending
+metrics for its local virtual machines.  By default these
+metrics are ignored, but the <strong>accept_vm_metrics</strong> flag can
+be used to accept those metrics too,  and prefix them with
+an identifier for each virtual machine.</p>
+<pre>
+   sflow {
+     accept_vm_metrics = yes
+   }</pre>
+<p>The sFlow feed may also contain metrics sent from HTTP or memcached
+servers,  or from Java VMs.  Extra options can be used to ignore
+or accept these metrics,  and to indicate that there may be multiple
+instances per host.  For example:</p>
+<pre>
+    sflow {
+      accept_http_metrics = yes
+      multiple_http_instances = yes
+    }</pre>
+<p>will allow the HTTP metrics, and also mark them with a distinguishing
+identifier so that each instance can be trended separately.  (If multiple
+instances are reporting and this flag is not set,  the results are likely
+to be garbled.)</p>
 <p>
 </p>
 <h2><a name="include">Include</a></h2>
@@ -515,6 +615,11 @@ a useful starting point for creating your own custom configuration.</p>
 <p>
 </p>
 <hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><code>gmond(1)</code>.</p>
+<p>
+</p>
+<hr />
 <h1><a name="notes">NOTES</a></h1>
 <p>The ganglia web site is at <a href="http://ganglia.info/.">http://ganglia.info/.</a></p>
 <p>
@@ -524,7 +629,7 @@ a useful starting point for creating your own custom configuration.</p>
 <p>Copyright (c) 2005 The University of California, Berkeley</p>
 <table border="0" width="100%" cellspacing="0" cellpadding="3">
 <tr><td class="block" style="background-color: #cccccc" valign="middle">
-<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.1.8 Configuration</span></strong></big>
+<big><strong><span class="block">&nbsp;Ganglia Monitoring Daemon v3.4.0 Configuration</span></strong></big>
 </td></tr>
 </table>
 
