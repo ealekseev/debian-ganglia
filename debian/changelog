@@ -1,5 +1,6 @@
-ganglia (3.3.8-2) UNRELEASED; urgency=low
+ganglia (3.6.0-1) unstable; urgency=low
 
+  * New upstream release
   * Add a debian/watch file.
   * Stop removing debian/patches directory in clean target so that we
     can include patches to upstream.
@@ -7,7 +8,7 @@ ganglia (3.3.8-2) UNRELEASED; urgency=low
     (Closes: Bug#694623).
   * Update Maintainer and VCS entries for entry to pkg-monitoring on alioth
 
- -- Mario Lang <mlang@debian.org>  Thu, 29 Nov 2012 09:32:58 +0100
+ -- Daniel Pocock <daniel@pocock.com.au>  Mon, 27 May 2013 16:27:26 +0200
 
 ganglia (3.3.8-1) unstable; urgency=low
 
