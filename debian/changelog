@@ -1,3 +1,9 @@
+ganglia (3.6.0-2) unstable; urgency=low
+
+  * Fix for kFreeBSD builds
+
+ -- Daniel Pocock <daniel@pocock.com.au>  Thu, 05 Sep 2013 11:53:06 +0200
+
 ganglia (3.6.0-1) unstable; urgency=low
 
   * New upstream release
