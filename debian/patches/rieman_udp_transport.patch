@@ -1,0 +1,573 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -517,6 +517,28 @@
+ fi
+ 
+ echo
++echo Checking for Protocol Buffers
++AC_ARG_WITH( riemann,
++[  --with-riemann          enable riemann metric forwarding],
++if test x"$withval" = xyes; then riemann="yes"; fi)
++
++if test x"$riemann" == xyes; then
++  AC_CHECK_PROGS([PROTOC_C], [protoc-c], [:])
++  if test "$PROTOC_C" = :; then
++    AC_MSG_ERROR([This package needs 'protoc-c' tool. Try installing the 'protobuf-c-compiler' package.])
++  fi
++  AC_CONFIG_COMMANDS([riemann_pb-c.c], [protoc-c -Igmetad/ --c_out=./gmetad gmetad/riemann.proto])
++  AC_CHECK_LIB([protobuf-c], [protobuf_c_message_pack])
++  if test x"$ac_cv_lib_protobuf_c_protobuf_c_message_pack" = xno; then
++    echo "libprotobuf-c not found"  # package: libprotobuf-c0-dev
++    exit 1
++  fi
++  LDFLAGS="$LDFLAGS -lprotobuf-c"
++  CFLAGS="$CFLAGS -DWITH_RIEMANN"
++fi
++AM_CONDITIONAL(BUILD_RIEMANN, test x"$riemann" = xyes)
++
++echo
+ echo Checking for confuse
+ if test x"$libconfusepath" != x && test x"$libconfusepath" != xyes; then
+   CFLAGS="$CFLAGS -I$libconfusepath/include"
+--- a/gmetad/Makefile.am
++++ b/gmetad/Makefile.am
+@@ -23,6 +23,10 @@
+    server.c process_xml.c rrd_helpers.c export_helpers.c conf.c conf.h type_hash.c \
+    xml_hash.c cleanup.c rrd_helpers.h export_helpers.h daemon_init.c daemon_init.h \
+ 	 server_priv.h  
++if BUILD_RIEMANN
++  gmetad_SOURCES += riemann.pb-c.h riemann.pb-c.c
++endif
++
+ gmetad_LDADD   = $(top_builddir)/lib/libganglia.la -lrrd -lm \
+                  $(GLDADD) $(DEPS_LIBS)
+ 
+--- a/gmetad/conf.c.in
++++ b/gmetad/conf.c.in
+@@ -310,6 +310,38 @@
+ 	return NULL;
+ } 
+ 
++static DOTCONF_CB(cb_riemann_server)
++{
++   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
++   debug_msg("Enabling Riemann forwarding to %s", cmd->data.str);
++   c->riemann_server = strdup (cmd->data.str);
++   return NULL;
++}
++
++static DOTCONF_CB(cb_riemann_port)
++{
++   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
++   debug_msg("Setting Riemann port to %ld", cmd->data.value);
++   c->riemann_port = cmd->data.value;
++   return NULL;
++}
++
++static DOTCONF_CB(cb_riemann_protocol)
++{
++   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
++   debug_msg("Setting Riemann protocol to %s", cmd->data.str);
++   c->riemann_protocol = strdup (cmd->data.str);
++   return NULL;
++}
++
++static DOTCONF_CB(cb_riemann_attributes)
++{
++   gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
++   debug_msg("Riemann key-value attributes %s", cmd->data.str);
++   c->riemann_attributes = strdup (cmd->data.str);
++   return NULL;
++}
++
+ static DOTCONF_CB(cb_unsummarized_metrics)
+ {
+    int i;
+@@ -358,6 +390,10 @@
+       {"memcached_parameters", ARG_STR, cb_memcached_parameters, &gmetad_config, 0},
+       {"graphite_prefix", ARG_STR, cb_graphite_prefix, &gmetad_config, 0},
+       {"graphite_path", ARG_STR, cb_graphite_path, &gmetad_config, 0},
++      {"riemann_server", ARG_STR, cb_riemann_server, &gmetad_config, 0},
++      {"riemann_port", ARG_INT, cb_riemann_port, &gmetad_config, 0},
++      {"riemann_protocol", ARG_STR, cb_riemann_protocol, &gmetad_config, 0},
++      {"riemann_attributes", ARG_STR, cb_riemann_attributes, &gmetad_config, 0},
+       {"unsummarized_metrics", ARG_LIST, cb_unsummarized_metrics, &gmetad_config, 0},
+       LAST_OPTION
+    };
+@@ -387,6 +423,9 @@
+    config->carbon_port = 2003;
+    config->carbon_protocol = "tcp";
+    config->carbon_timeout = 500;
++   config->riemann_port = 5555;
++   config->riemann_protocol = "udp";
++   config->riemann_attributes = NULL;
+    config->unsummarized_metrics = NULL;
+ }
+ 
+--- a/gmetad/conf.h
++++ b/gmetad/conf.h
+@@ -30,6 +30,10 @@
+       int all_trusted;
+       int num_RRAs;
+       char *RRAs[MAX_RRAS];
++      char *riemann_server;
++      int riemann_port;
++      char *riemann_protocol;
++      char *riemann_attributes;
+       int case_sensitive_hostnames;
+       int shortest_step;
+ } gmetad_config_t;
+--- a/gmetad/export_helpers.c
++++ b/gmetad/export_helpers.c
+@@ -22,6 +22,10 @@
+ #include <libmemcachedutil-1.0/util.h>
+ #endif /* WITH_MEMCACHED */
+ 
++#ifdef WITH_RIEMANN
++#include "riemann.pb-c.h"
++#endif /* WITH_RIEMANN */
++
+ #include "export_helpers.h"
+ 
+ #define PATHSIZE 4096
+@@ -60,6 +64,41 @@
+    return s;
+ }
+ 
++#ifdef WITH_RIEMANN
++g_udp_socket *riemann_udp_socket;
++pthread_mutex_t  riemann_mutex = PTHREAD_MUTEX_INITIALIZER;
++
++g_udp_socket*
++init_riemann_udp_socket (const char *hostname, uint16_t port)
++{
++   int sockfd;
++   g_udp_socket* s;
++   struct sockaddr_in *sa_in;
++   struct hostent *hostinfo;
++
++   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
++   if (sockfd < 0)
++      {
++         err_msg("create socket (client): %s", strerror(errno));
++         return NULL;
++      }
++
++   s = malloc( sizeof( g_udp_socket ) );
++   memset( s, 0, sizeof( g_udp_socket ));
++   s->sockfd = sockfd;
++   s->ref_count = 1;
++
++   /* Set up address and port for connection */
++   sa_in = (struct sockaddr_in*) &s->sa;
++   sa_in->sin_family = AF_INET;
++   sa_in->sin_port = htons (port);
++   hostinfo = gethostbyname (hostname);
++   sa_in->sin_addr = *(struct in_addr *) hostinfo->h_addr;
++
++   return s;
++}
++#endif /* WITH_RIEMANN */
++
+ void init_sockaddr (struct sockaddr_in *name, const char *hostname, uint16_t port)
+ {
+   struct hostent *hostinfo;
+@@ -343,3 +382,146 @@
+ 	graphite_msg[strlen(graphite_msg)+1] = 0;
+    return push_data_to_carbon( graphite_msg );
+ }
++
++#ifdef WITH_RIEMANN
++
++int
++tokenize (char *str, char *delim, char **tokens)
++{
++  char *p;
++  int i = 0;
++
++  p = strtok (str, delim);
++  while (p != NULL) {
++    tokens[i] = malloc (strlen (p) + 1);
++    if (tokens[i])
++      strcpy (tokens[i], p);
++    i++;
++    p = strtok (NULL, delim);
++  }
++  return i++;
++}
++
++int
++send_data_to_riemann (const char *grid, const char *cluster, const char *host, const char *ip,
++                      const char *metric, const char *value, const char *type, const char *units,
++                      const char *state, unsigned int localtime, const char *tags_str,
++                      const char *location, unsigned int ttl)
++{
++  pthread_mutex_lock( &riemann_mutex );
++
++  int i;
++  char *buffer = NULL;
++
++  debug_msg("[riemann] grid=%s, cluster=%s, host=%s, ip=%s, metric=%s, value=%s %s, type=%s, state=%s, localtime=%u, tags=%s, location=%s, ttl=%u",
++            grid, cluster, host, ip, metric, value, units, type, state, localtime, tags_str, location, ttl);
++
++  Event evt = EVENT__INIT;
++
++  evt.host = (char *)host;
++  evt.service = (char *)metric;
++
++   if (value) {
++       if (!strcmp(type, "int")) {
++           evt.has_metric_sint64 = 1;
++           evt.metric_sint64 = strtol(value, (char **) NULL , 10 );
++       } else if (!strcmp(type, "float")) {
++           evt.has_metric_d = 1;
++           evt.metric_d = (double) strtod(value, (char**) NULL);
++       } else {
++           evt.state = (char *)value;
++       }
++   }
++  evt.description = (char *)units;
++
++   if (state)
++      evt.state = (char *)state;
++
++   if (localtime)
++      evt.time = localtime;
++
++  char *tags[64] = { NULL };
++  buffer = strdup(tags_str);
++
++  evt.n_tags = tokenize (buffer, ",", tags);  /* assume tags are comma-separated */
++  evt.tags = tags;
++  free(buffer);
++
++  char attr_str[512];
++  sprintf(attr_str, "grid=%s,cluster=%s,ip=%s,location=%s%s%s", grid, cluster, ip, location,
++        gmetad_config.riemann_attributes ? "," : "",
++        gmetad_config.riemann_attributes ? gmetad_config.riemann_attributes : "");
++
++  int n_attrs;
++  char *kv[64] = { NULL };
++  buffer = strdup(attr_str);
++
++  n_attrs = tokenize (buffer, ",", kv);
++  free(buffer);
++
++  Attribute **attrs;
++  attrs = malloc (sizeof (Attribute *) * n_attrs);
++
++  for (i = 0; i < n_attrs; i++) {
++
++    char *pair[1] = { NULL };
++    tokenize (kv[i], "=", pair);
++
++    attrs[i] = malloc (sizeof (Attribute));
++    attribute__init (attrs[i]);
++    attrs[i]->key = pair[0];
++    attrs[i]->value = pair[1];
++  }
++  evt.n_attributes = n_attrs;
++  evt.attributes = attrs;
++
++  evt.has_ttl = 1;
++  evt.ttl = ttl;
++
++  Msg riemann_msg = MSG__INIT;
++  void *buf;
++  unsigned len;
++
++  riemann_msg.n_events = 1;
++  riemann_msg.events = malloc(sizeof (Event) * riemann_msg.n_events);
++  riemann_msg.events[0] = &evt;
++
++  len = msg__get_packed_size(&riemann_msg);
++  buf = malloc(len);
++  msg__pack(&riemann_msg, buf);
++
++  debug_msg("[riemann] %zu host=%s, service=%s, state=%s, metric_f=%f, metric_d=%lf, metric_sint64=%" PRId64 ", description=%s, ttl=%f, tags(%zu), attributes(%zu)",
++            evt.time, evt.host, evt.service, evt.state, evt.metric_f, evt.metric_d, evt.metric_sint64, evt.description, evt.ttl, evt.n_tags, evt.n_attributes);
++
++  int nbytes;
++  nbytes = sendto (riemann_udp_socket->sockfd, buf, len, 0,
++                         (struct sockaddr_in*)&riemann_udp_socket->sa, sizeof (struct sockaddr_in));
++
++  if (nbytes != len)
++  {
++         err_msg("[riemann] sendto socket (client): %s", strerror(errno));
++         return EXIT_FAILURE;
++  } else {
++      debug_msg("[riemann] Sent %d serialized bytes", len);
++  }
++
++  for (i = 0; i < evt.n_attributes; i++) {
++     free(attrs[i]->key);
++     free(attrs[i]->value);
++     free(attrs[i]);
++     free(kv[i]);
++  }
++  free(attrs);
++  for (i = 0; i < evt.n_tags; i++) {
++     free(tags[i]);
++  }
++  free(riemann_msg.events);
++  free(buf);
++
++  pthread_mutex_unlock( &riemann_mutex );
++
++  return EXIT_SUCCESS;
++
++}
++#endif /* WITH_RIEMANN */
++
+--- a/gmetad/export_helpers.h
++++ b/gmetad/export_helpers.h
+@@ -24,3 +24,23 @@
+ int
+ write_data_to_carbon ( const char *source, const char *host, const char *metric, 
+                     const char *sum, unsigned int process_time);
++#ifdef WITH_RIEMANN
++g_udp_socket*
++init_riemann_udp_socket (const char *hostname, uint16_t port);
++
++int                                              /* Ganglia   =>  Riemann */
++send_data_to_riemann (const char *grid,          /* grid      =>  grid */
++                      const char *cluster,       /* cluster   =>  cluster */
++                      const char *host,          /* host      =>  host */
++                      const char *ip,            /* ip        =>  ip */
++                      const char *metric,        /* metric    =>  service */
++                      const char *value,         /* value     =>  metric (if int or float) or state (if string) */
++                      const char *type,          /* "int", "float" or "string" */
++                      const char *units,         /* units     =>  description */
++                      const char *state,         /* not used  =>  state (overrides metric value if also supplied) */
++                      unsigned int localtime,    /* localtime =>  time */
++                      const char *tags,          /* tags      =>  tags */
++                      const char *location,      /* location  =>  location */
++                      unsigned int ttl           /* tmax      =>  ttl */
++                      );
++#endif /* WITH_RIEMANN */
+--- a/gmetad/gmetad.c
++++ b/gmetad/gmetad.c
+@@ -41,6 +41,10 @@
+ 
+ extern g_udp_socket *carbon_udp_socket;
+ 
++#ifdef WITH_RIEMANN
++extern g_udp_socket *riemann_udp_socket;
++#endif /* WITH_RIEMANN */
++
+ struct gengetopt_args_info args_info;
+ 
+ extern gmetad_config_t gmetad_config;
+@@ -437,6 +441,22 @@
+          debug_msg("carbon forwarding ready to send via %s to %s:%d", c->carbon_protocol, c->carbon_server, c->carbon_port);
+       }
+ 
++#ifdef WITH_RIEMANN
++    if (c->riemann_server !=NULL)
++      {
++         if (!strcmp(c->riemann_protocol, "udp"))
++            {
++               riemann_udp_socket = init_riemann_udp_socket (c->riemann_server, c->riemann_port);
++
++               if (riemann_udp_socket == NULL)
++                  err_quit("[riemann] %s socket failed for %s:%d", c->riemann_protocol, c->riemann_server, c->riemann_port);
++            } else {
++               err_quit("[riemann] TCP transport not supported yet.");
++            }
++         debug_msg("[riemann] ready to forward metrics via %s to %s:%d", c->riemann_protocol, c->riemann_server, c->riemann_port);
++      }
++#endif /* WITH_RIEMANN */
++
+    /* initialize summary mutex */
+    root.sum_finished = (pthread_mutex_t *) 
+                           malloc(sizeof(pthread_mutex_t));
+--- a/gmetad/gmetad.conf.in
++++ b/gmetad/gmetad.conf.in
+@@ -185,3 +185,46 @@
+ # memcached_parameters "--SERVER=127.0.0.1"
+ #
+ 
++#-------------------------------------------------------------------------------
++# Riemann configuration (if enabled during build)
++# Metrics can be forwarded to a Riemann event stream processor for real-time
++# thresholding and alerting. See http://riemann.io/
++#
++# +-------------------+----------------+
++# |  Ganglia          |  Riemann       |
++# |-------------------|----------------|
++# |  grid             |  grid          |
++# |  cluster          |  cluster       |
++# |  host             |  host*         |
++# |  ip               |  ip            |
++# |  metric           |  service*      |
++# |  value(int,float) |  metric*       |
++# |  type             |  (internal)    |
++# |  units            |  description*  |
++# |  value(string)    |  state*        |
++# |  reported         |  time*         |
++# |  tags(comma-sep)  |  tags*         |
++# |  location         |  location      |
++# |  tmax             |  ttl*          |
++# +-------------------+----------------+
++#
++# Note: attributes with a star (*) are standard Riemann fields
++#
++# The hostname or IP address of the Riemann server
++# default: unspecified
++# riemann_server "my.riemann.box"
++#
++# The port and protocol on which Riemann is listening
++# default: 5555
++# riemann_port 5555
++#
++# default: udp   (tcp transport is not supported, yet)
++# riemann_protocol udp
++#
++# List of arbitrary key-value pairs to be used as event attributes in
++# addition to those listed above.
++#
++# default: undefined
++# riemann_attributes "key=val[,...]"
++# riemann_attributes "customer=Acme Corp,environment=PROD"
++
+--- a/gmetad/process_xml.c
++++ b/gmetad/process_xml.c
+@@ -524,6 +524,25 @@
+       }
+    host->stringslen = edge;
+ 
++#ifdef WITH_RIEMANN
++
++        /* Forward heartbeat metric to Riemann */
++        if (gmetad_config.riemann_server) {
++
++            char value[12];
++            sprintf(value, "%d", reported);
++
++            int rm_ret = 0;
++            rm_ret = send_data_to_riemann (gmetad_config.gridname, xmldata->sourcename, xmldata->hostname,
++                                           getfield(host->strings, host->ip), "heartbeat", value, "int",
++                                           "seconds", NULL, xmldata->source.localtime, getfield(host->strings, host->tags),
++                                           getfield(host->strings, host->location), tmax * 4);
++
++            if (rm_ret)
++                err_msg("[riemann] Could not send heartbeat metric to Riemann");
++        }
++#endif /* WITH_RIEMANN */
++
+    /* Trim structure to the correct length. */
+    hashval.size = sizeof(*host) - GMETAD_FRAMESIZE + host->stringslen;
+    hashval.data = host;
+@@ -586,6 +605,7 @@
+    const char *name = NULL;
+    const char *metricval = NULL;
+    const char *type = NULL;
++   const char *units = NULL;
+    int do_summary;
+    int i, edge, carbon_ret;
+    hash_t *summary;
+@@ -612,6 +632,9 @@
+                case TYPE_TAG:
+                   type = attr[i+1];
+                   break;
++               case UNITS_TAG:
++                  units = attr[i+1];
++                  break;
+                case SLOPE_TAG:
+                   slope = cstr_to_slope(attr[i+1]);
+                default:
+@@ -639,6 +662,35 @@
+ 	 if (metric->dmax && metric->tn > metric->dmax)
+             return 0;
+ 
++#ifdef WITH_RIEMANN
++         /* Forward all metrics, including strings, to Riemann */
++        if (gmetad_config.riemann_server) {
++
++            Host_t *host = (Host_t*) host;
++            host = &(xmldata->host);
++            int rm_ret = 0;
++
++            if (tt->type == INT || tt->type == UINT) {
++               rm_ret = send_data_to_riemann (gmetad_config.gridname, xmldata->sourcename, xmldata->hostname,
++                                              getfield(host->strings, host->ip), name, metricval, "int",
++                                              units, NULL, xmldata->source.localtime, getfield(host->strings, host->tags),
++                                              getfield(host->strings, host->location), metric->tmax);
++            } else if (tt->type == FLOAT) {
++               rm_ret = send_data_to_riemann (gmetad_config.gridname, xmldata->sourcename, xmldata->hostname,
++                                              getfield(host->strings, host->ip), name, metricval, "float",
++                                              units, NULL, xmldata->source.localtime, getfield(host->strings, host->tags),
++                                              getfield(host->strings, host->location), metric->tmax);
++            } else {
++               rm_ret = send_data_to_riemann (gmetad_config.gridname, xmldata->sourcename, xmldata->hostname,
++                                              getfield(host->strings, host->ip), name, metricval, "string",
++                                              units, NULL, xmldata->source.localtime, getfield(host->strings, host->tags),
++                                              getfield(host->strings, host->location), metric->tmax);
++            }
++            if (rm_ret)
++                err_msg("[riemann] Could not send %s metric to Riemann", name);
++        }
++#endif /* WITH_RIEMANN */
++
+          if (do_summary && !xmldata->ds->dead && !xmldata->rval)
+             {
+                   debug_msg("Updating host %s, metric %s", 
+@@ -653,9 +705,9 @@
+ 		  if (gmetad_config.memcached_parameters) {
+                      int mc_ret=write_data_to_memcached(xmldata->sourcename, xmldata->hostname, name, metricval, xmldata->source.localtime, metric->dmax);
+ 		  }
+-
+ #endif /* WITH_MEMCACHED */
+             }
++
+          metric->id = METRIC_NODE;
+          metric->report_start = metric_report_start;
+          metric->report_end = metric_report_end;
+--- /dev/null
++++ b/gmetad/riemann.proto
+@@ -0,0 +1,45 @@
++option java_package = "com.aphyr.riemann";
++option java_outer_classname = "Proto";
++
++message State {
++  optional int64 time = 1;
++  optional string state = 2;
++  optional string service = 3;
++  optional string host = 4;
++  optional string description = 5;
++  optional bool once = 6;
++  repeated string tags = 7;
++  optional float ttl = 8;
++}
++
++message Event {
++  optional int64 time = 1;
++  optional string state = 2;
++  optional string service = 3;
++  optional string host = 4;
++  optional string description = 5;
++  repeated string tags = 7;
++  optional float ttl = 8;
++  repeated Attribute attributes = 9;
++
++  optional sint64 metric_sint64 = 13;
++  optional double metric_d = 14;
++  optional float metric_f = 15;
++}
++
++message Query {
++  optional string string = 1;
++}
++
++message Msg {
++  optional bool ok = 2;
++  optional string error = 3;
++  repeated State states = 4;
++  optional Query query = 5;
++  repeated Event events = 6;
++}
++
++message Attribute {
++  required string key = 1;
++  optional string value = 2;
++}
