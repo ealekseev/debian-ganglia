@@ -37,6 +37,7 @@ config.status: configure
 		--sysconfdir=/etc/ganglia \
 		--infodir=\$${prefix}/share/info --enable-shared \
 		--with-gmetad
+    --with-riemann
 build: build-stamp
 
 build-stamp:  config.status
