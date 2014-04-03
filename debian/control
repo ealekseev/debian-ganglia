@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian Monitoring Maintainers <pkg-monitoring-maintainers@lists.alioth.debian.org>
 Uploaders: Stuart Teasdale <sdt@debian.org>, Daniel Pocock <daniel@pocock.com.au>
 Homepage: http://www.ganglia.info/
-Build-Depends: debhelper (>> 9.0.0), librrd2-dev, autoconf, autotools-dev, automake, libapr1-dev, libexpat1-dev, python-dev, libconfuse-dev, po-debconf, libxml2-dev, libdbi0-dev, libpcre3-dev, gperf, libtool, rsync, libkvm-dev [kfreebsd-any]
+Build-Depends: debhelper (>> 9.0.0), librrd2-dev, autoconf, autotools-dev, automake, libapr1-dev, libexpat1-dev, python-dev, libconfuse-dev, po-debconf, libxml2-dev, libdbi0-dev, libpcre3-dev, gperf, libtool, rsync, protobuf-c-compiler, libprotobuf-c0-dev, libkvm-dev [kfreebsd-any]
 Standards-Version: 3.9.4
 Vcs-Git: git://git.debian.org/pkg-monitoring/ganglia.git
 Vcs-Browser: http://git.debian.org/?p=pkg-monitoring/ganglia.git;a=summary
