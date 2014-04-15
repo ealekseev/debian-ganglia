@@ -14,11 +14,11 @@ if BUILD_STATUS
 STATUS_SUBDIR = status
 endif
 
-DIST_SUBDIRS = example cpu disk memory network system status python php perl
+DIST_SUBDIRS = example cpu disk memory network system status python php perl smart
 if STATIC_BUILD
-SUBDIRS = cpu disk memory network system $(STATUS_SUBDIR) $(PYTHON_SUBDIR) $(PHP_SUBDIR) $(PERL_SUBDIR)
+SUBDIRS = cpu disk memory network system smart $(STATUS_SUBDIR) $(PYTHON_SUBDIR) $(PHP_SUBDIR) $(PERL_SUBDIR)
 else
-SUBDIRS = example cpu disk memory network system $(STATUS_SUBDIR) $(PYTHON_SUBDIR) $(PHP_SUBDIR) $(PERL_SUBDIR)
+SUBDIRS = example cpu disk memory network system smart $(STATUS_SUBDIR) $(PYTHON_SUBDIR) $(PHP_SUBDIR) $(PERL_SUBDIR)
 
 install: install-recursive
 	@rm -rf $(DESTDIR)$(pkglibdir)/*.a
