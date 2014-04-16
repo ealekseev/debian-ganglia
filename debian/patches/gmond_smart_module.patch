@@ -694,10 +694,10 @@ index 0000000..afaf939
 +.NOEXPORT:
 diff --git a/gmond/modules/smart/mod_smart.c b/gmond/modules/smart/mod_smart.c
 new file mode 100644
-index 0000000..af8b974
+index 0000000..94e913f
 --- /dev/null
 +++ b/gmond/modules/smart/mod_smart.c
-@@ -0,0 +1,168 @@
+@@ -0,0 +1,169 @@
 +/*******************************************************************************
 +* Copyright (C) 2007 Novell, Inc. All rights reserved.
 +*
@@ -773,10 +773,10 @@ index 0000000..af8b974
 +                        strncpy(tmp, dir->d_name, len + 1);
 +                        devices[i++] = tmp;
 +                        if (i > MAX_CHECK_DEVS)
-+                            return -1;
++                            return 2048;
 +                    }
 +                    else {
-+                        return -2;
++                        return 4096;
 +                    }
 +                }
 +            }
@@ -837,7 +837,8 @@ index 0000000..af8b974
 +    total_len = strlen(smartctl_path) + (strlen(smartctl_prefix + 1)) + strlen(template);
 +    cmd = malloc(sizeof(char)*total_len);
 +    if (cmd == NULL)
-+        return (g_val_t)-1;
++        val.uint32 = 512;
++        return val;
 +    if (i > 0) {
 +        for (k = 0; k < i; k++) {
 +            sprintf(cmd, template, smartctl_path, devs[k]);
