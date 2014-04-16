@@ -694,7 +694,7 @@ index 0000000..afaf939
 +.NOEXPORT:
 diff --git a/gmond/modules/smart/mod_smart.c b/gmond/modules/smart/mod_smart.c
 new file mode 100644
-index 0000000..25d0f3f
+index 0000000..af8b974
 --- /dev/null
 +++ b/gmond/modules/smart/mod_smart.c
 @@ -0,0 +1,168 @@
@@ -763,7 +763,7 @@ index 0000000..25d0f3f
 +
 +    d = opendir("/dev");
 +    if (d) {
-+        while ((dir = readdir(d)) != NULL) {X_CHECK_DEVS 256
++        while ((dir = readdir(d)) != NULL) {
 +            if ((dir->d_type == DT_CHR) && (!strncmp(dir->d_name, prefix, sizeof(char)*pref_len))) {
 +                len = strlen(dir->d_name);
 +                printf("%s %d %d\n", dir->d_name, len, pref_len);
@@ -806,7 +806,7 @@ index 0000000..25d0f3f
 +            if (!strcasecmp(params[i].name, "SmartctlPath")) {
 +                smartctl_path = params[i].value;
 +            }
-+            if (!strcasecmp(params[i].name, "SmartCtlPrefix")) {
++            if (!strcasecmp(params[i].name, "SmartctlPrefix")) {
 +                smartctl_prefix = params[i].value;
 +            }
 +        }
@@ -831,13 +831,13 @@ index 0000000..25d0f3f
 +    int i, k, total_len, ret, rret = 0;
 +    char * devs[MAX_CHECK_DEVS];
 +    char *cmd;
-+    const char *template = "sudo -n %s -H /dev/%s >/dev/null 2>&1\n";
++    const char *template = "%s -H /dev/%s >/dev/null 2>&1\n";
 +
 +    i = list_devices(devs, smartctl_prefix);
 +    total_len = strlen(smartctl_path) + (strlen(smartctl_prefix + 1)) + strlen(template);
 +    cmd = malloc(sizeof(char)*total_len);
 +    if (cmd == NULL)
-+        return -1;
++        return (g_val_t)-1;
 +    if (i > 0) {
 +        for (k = 0; k < i; k++) {
 +            sprintf(cmd, template, smartctl_path, devs[k]);
