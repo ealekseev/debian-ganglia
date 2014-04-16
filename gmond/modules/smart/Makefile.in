@@ -72,8 +72,12 @@ libmodsmart_la_LIBADD =
 am__libmodsmart_la_SOURCES_DIST = mod_smart.c
 @STATIC_BUILD_TRUE@am_libmodsmart_la_OBJECTS = mod_smart.lo
 libmodsmart_la_OBJECTS = $(am_libmodsmart_la_OBJECTS)
+libmodsmart_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(libmodsmart_la_LDFLAGS) $(LDFLAGS) -o $@
 @STATIC_BUILD_TRUE@am_libmodsmart_la_rpath =
-modsmart_la_LIBADD =
+@STATIC_BUILD_FALSE@modsmart_la_DEPENDENCIES =  \
+@STATIC_BUILD_FALSE@	$(top_builddir)/libmetrics/libmetrics.la
 am__modsmart_la_SOURCES_DIST = mod_smart.c
 @STATIC_BUILD_FALSE@am_modsmart_la_OBJECTS = mod_smart.lo
 modsmart_la_OBJECTS = $(am_modsmart_la_OBJECTS)
@@ -251,13 +255,15 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 varstatedir = @varstatedir@
-AM_CFLAGS = -I$(top_builddir)/include -I$(top_builddir)/lib 
+AM_CFLAGS = -D_LARGEFILE64_SOURCE -I$(top_builddir)/include -I$(top_builddir)/libmetrics -I$(top_builddir)/lib 
 @STATIC_BUILD_TRUE@noinst_LTLIBRARIES = libmodsmart.la
-@STATIC_BUILD_TRUE@libmodsmart_la_SOURCES = mod_smart.c 
+@STATIC_BUILD_TRUE@libmodsmart_la_SOURCES = mod_smart.c
+@STATIC_BUILD_TRUE@libmodsmart_la_LDFLAGS = -export-all-symbols
 @STATIC_BUILD_FALSE@pkglib_LTLIBRARIES = modsmart.la
 @STATIC_BUILD_FALSE@modsmart_la_SOURCES = mod_smart.c 
 @STATIC_BUILD_FALSE@modsmart_la_LDFLAGS = -module -avoid-version
 @STATIC_BUILD_FALSE@EXTRA_DIST = ../conf.d/smart.conf
+@STATIC_BUILD_FALSE@modsmart_la_LIBADD = $(top_builddir)/libmetrics/libmetrics.la
 INCLUDES = @APR_INCLUDES@
 all: all-am
 
@@ -334,7 +340,7 @@ clean-pkglibLTLIBRARIES:
 	  rm -f "$${dir}/so_locations"; \
 	done
 libmodsmart.la: $(libmodsmart_la_OBJECTS) $(libmodsmart_la_DEPENDENCIES) 
-	$(LINK) $(am_libmodsmart_la_rpath) $(libmodsmart_la_OBJECTS) $(libmodsmart_la_LIBADD) $(LIBS)
+	$(libmodsmart_la_LINK) $(am_libmodsmart_la_rpath) $(libmodsmart_la_OBJECTS) $(libmodsmart_la_LIBADD) $(LIBS)
 modsmart.la: $(modsmart_la_OBJECTS) $(modsmart_la_DEPENDENCIES) 
 	$(modsmart_la_LINK) $(am_modsmart_la_rpath) $(modsmart_la_OBJECTS) $(modsmart_la_LIBADD) $(LIBS)
 
@@ -462,6 +468,7 @@ installdirs:
 	for dir in "$(DESTDIR)$(pkglibdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
+install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
 uninstall: uninstall-am
@@ -574,11 +581,6 @@ uninstall-am: uninstall-pkglibLTLIBRARIES
 	pdf pdf-am ps ps-am tags uninstall uninstall-am \
 	uninstall-pkglibLTLIBRARIES
 
-
-install:
-	@echo
-	@echo "Examples should be installed manually"
-	@echo
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
