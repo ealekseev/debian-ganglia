@@ -694,10 +694,10 @@ index 0000000..afaf939
 +.NOEXPORT:
 diff --git a/gmond/modules/smart/mod_smart.c b/gmond/modules/smart/mod_smart.c
 new file mode 100644
-index 0000000..48754ce
+index 0000000..b9a0036
 --- /dev/null
 +++ b/gmond/modules/smart/mod_smart.c
-@@ -0,0 +1,173 @@
+@@ -0,0 +1,184 @@
 +/*******************************************************************************
 +* Copyright (C) 2007 Novell, Inc. All rights reserved.
 +*
@@ -775,10 +775,10 @@ index 0000000..48754ce
 +                        strncpy(tmp, dir->d_name, len + 1);
 +                        devices[i++] = tmp;
 +                        if (i > MAX_CHECK_DEVS)
-+                            return 2048;
++                            return -1;
 +                    }
 +                    else {
-+                        return 4096;
++                        return -2;
 +                    }
 +                }
 +            }
@@ -836,6 +836,17 @@ index 0000000..48754ce
 +    const char *template = "%s -H /dev/%s >/dev/null 2>&1\n";
 +
 +    i = list_devices(devs, smartctl_prefix);
++    if (i < 0) {
++        switch (i) {
++        case -1:
++          val.uint32 = 2048;
++          break;
++        case -2:
++          val.uint32 = 4096;
++          break;
++        }
++        return val;
++    } 
 +    total_len = strlen(smartctl_path) + (strlen(smartctl_prefix + 1)) + strlen(template) + 1;
 +    cmd = malloc(sizeof(char)*total_len);
 +    if (cmd == NULL) {
@@ -853,13 +864,13 @@ index 0000000..48754ce
 +        }
 +    }
 +    free(cmd);
-+    val.uint32 = rret;
++    val.uint32 = (rret & 0xF8);
 +    return val;
 +}
 +
 +static Ganglia_25metric ex_metric_info[] =
 +{
-+    {0, "SMART_status", 90, GANGLIA_VALUE_UNSIGNED_INT, "Num", "zero", "%u", UDP_HEADER_SIZE+8, "SMART module metric (highest smart status)"},
++    {0, "smart_status", 90, GANGLIA_VALUE_UNSIGNED_INT, "Num", "zero", "%u", UDP_HEADER_SIZE+8, "SMART module metric (highest smart status)"},
 +    {0, NULL}
 +};
 +
