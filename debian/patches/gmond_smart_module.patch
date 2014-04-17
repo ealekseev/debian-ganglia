@@ -694,10 +694,10 @@ index 0000000..afaf939
 +.NOEXPORT:
 diff --git a/gmond/modules/smart/mod_smart.c b/gmond/modules/smart/mod_smart.c
 new file mode 100644
-index 0000000..94e913f
+index 0000000..48754ce
 --- /dev/null
 +++ b/gmond/modules/smart/mod_smart.c
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,173 @@
 +/*******************************************************************************
 +* Copyright (C) 2007 Novell, Inc. All rights reserved.
 +*
@@ -740,6 +740,9 @@ index 0000000..94e913f
 +#include <time.h>
 +#include <dirent.h>
 +#include <ctype.h>
++#include <sys/types.h>
++#include <sys/wait.h>
++
 +
 +/*
 +* Declare ourselves so the configuration routines can find and know us.
@@ -766,7 +769,6 @@ index 0000000..94e913f
 +        while ((dir = readdir(d)) != NULL) {
 +            if ((dir->d_type == DT_CHR) && (!strncmp(dir->d_name, prefix, sizeof(char)*pref_len))) {
 +                len = strlen(dir->d_name);
-+                printf("%s %d %d\n", dir->d_name, len, pref_len);
 +                if ((len > pref_len) && isdigit(dir->d_name[pref_len])) {
 +                    tmp = malloc(sizeof(char)*(len + 1));
 +                    if (tmp) {
@@ -834,18 +836,20 @@ index 0000000..94e913f
 +    const char *template = "%s -H /dev/%s >/dev/null 2>&1\n";
 +
 +    i = list_devices(devs, smartctl_prefix);
-+    total_len = strlen(smartctl_path) + (strlen(smartctl_prefix + 1)) + strlen(template);
++    total_len = strlen(smartctl_path) + (strlen(smartctl_prefix + 1)) + strlen(template) + 1;
 +    cmd = malloc(sizeof(char)*total_len);
-+    if (cmd == NULL)
-+        val.uint32 = 512;
++    if (cmd == NULL) {
++        val.uint32 = 1024;
 +        return val;
++    }
 +    if (i > 0) {
 +        for (k = 0; k < i; k++) {
 +            sprintf(cmd, template, smartctl_path, devs[k]);
 +            free(devs[k]);
-+            printf("%s", cmd);
++            debug_msg("[mod_smart]Command: %s", cmd);
 +            ret = system(cmd);
-+            rret =  (ret > rret) ? ret : rret;
++            if (WIFEXITED(ret))
++                rret =  (WEXITSTATUS(ret) > rret) ? WEXITSTATUS(ret) : rret;
 +        }
 +    }
 +    free(cmd);
