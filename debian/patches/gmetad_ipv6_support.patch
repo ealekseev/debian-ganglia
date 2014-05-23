@@ -1,0 +1,481 @@
+diff --git a/gmetad/conf.c.in b/gmetad/conf.c.in
+index 095d000..24bba2c 100644
+--- a/gmetad/conf.c.in
++++ b/gmetad/conf.c.in
+@@ -77,12 +77,13 @@ static DOTCONF_CB(cb_data_source)
+    unsigned int i;
+    data_source_list_t *dslist;
+    datum_t key, val, *find;
+-   int port, rv=0;
++   int rv=0;
+    unsigned long step;
+    unsigned int source_index=0;
+-   char *p, *str;
++   char *p, *str, *host, *port;
+    char *endptr;
+    struct sockaddr_in sa;
++   g_inet6_addr ia;
+    gmetad_config_t *c = (gmetad_config_t*) cmd->option->info;
+ 
+    source_index++;
+@@ -114,7 +115,7 @@ static DOTCONF_CB(cb_data_source)
+    debug_msg("Polling interval for %s is %u sec.", dslist->name, dslist->step);
+    c->shortest_step = dslist->step;
+ 
+-   dslist->sources = (g_inet_addr **) malloc( (cmd->arg_count-i) * sizeof(g_inet_addr *) );
++   dslist->sources = (g_inet6_addr **) malloc( (cmd->arg_count-i) * sizeof(g_inet6_addr *) );
+    if (! dslist->sources )
+       err_quit("Unable to malloc sources array");
+ 
+@@ -125,31 +126,49 @@ static DOTCONF_CB(cb_data_source)
+       {
+          str = cmd->data.list[i];
+ 
+-         p = strchr( str, ':' );
+-         if( p )
+-            {
+-               /* Port is specified */
+-               *p = '\0';
+-               port = atoi ( p+1 );
++	p = strchr(str, '[');
++        if (p != NULL)
++            host = p + 1;
++        else
++            host = str;
++        p = strchr(str, ']');
++        if (p) {
++            *p = '\0';
++            if (*(p+1) == ':')
++                port = p+2;
++            else
++                port = "8649";
++        }
++        else {
++            p = strchr(host, ':');
++            if (p) {
++                if (p == strrchr(host, ':')) {
++                    *p = '\0';
++                    port = p+1;
++                }
++                else
++                    port = "8649";
+             }
+-         else
+-            port = 8649;
++            else
++                port = "8649";
++        }
+ 
+-         rv = g_gethostbyname( cmd->data.list[i], &sa, NULL);
+-         if (!rv) {
++	
++
++        rv = g_getaddrinfo(host, port, &ia, NULL);
++        if (rv) {
+             err_msg("Warning: we failed to resolve data source name %s", cmd->data.list[i]);
+             continue;
+-         }
+-         str = (char*) malloc(GANGLIA_HOSTNAME_LEN);
+-         my_inet_ntop(AF_INET, &sa.sin_addr, str, GANGLIA_HOSTNAME_LEN);
+-
+-         debug_msg("Trying to connect to %s:%d for [%s]", str, port, dslist->name);
+-         dslist->sources[dslist->num_sources] = (g_inet_addr *) g_inetaddr_new ( str, port );
+-         if(! dslist->sources[dslist->num_sources])
+-               err_quit("Unable to create inetaddr [%s:%d] and save it to [%s]", str, port, dslist->name);
+-         else
+-               dslist->num_sources++;
+-         free(str);
++        }
++        
++        debug_msg("Trying to connect to %s:%s for [%s]", host, port, dslist->name);
++        dslist->sources[dslist->num_sources] = (g_inet6_addr *)malloc(sizeof(g_inet6_addr));
++        if (dslist->sources[dslist->num_sources] == NULL)
++            err_quit("Unable to create inetaddr [%s:%s] and save it to [%s]", host, port, dslist->name);
++        else {
++            memcpy(dslist->sources[dslist->num_sources], &ia, sizeof(g_inet6_addr));
++            dslist->num_sources++;
++        }
+       }
+ 
+    key.data = cmd->data.list[0];
+diff --git a/gmetad/data_thread.c b/gmetad/data_thread.c
+index e5707d7..ab54e14 100644
+--- a/gmetad/data_thread.c
++++ b/gmetad/data_thread.c
+@@ -68,7 +68,7 @@ data_thread ( void *arg )
+          
+          /* If we successfully read from a good data source last time then try the same host again first. */
+          if(d->last_good_index != -1)
+-           sock = g_tcp_socket_new ( d->sources[d->last_good_index] );
++           sock = g_tcp6_socket_new ( d->sources[d->last_good_index] );
+ 
+          /* If there was no good connection last time or the above connect failed then try each host in the list. */
+          if(!sock)
+@@ -76,7 +76,7 @@ data_thread ( void *arg )
+              for(i=0; i < d->num_sources; i++)
+                {
+                  /* Find first viable source in list. */
+-                 sock = g_tcp_socket_new ( d->sources[i] );
++                 sock = g_tcp6_socket_new ( d->sources[i] );
+                  if( sock )
+                    {
+                      d->last_good_index = i;
+diff --git a/gmetad/export_helpers.c b/gmetad/export_helpers.c
+index dba9776..bc2f9c2 100644
+--- a/gmetad/export_helpers.c
++++ b/gmetad/export_helpers.c
+@@ -17,6 +17,7 @@
+ #include <sys/poll.h>
+ #include <arpa/inet.h>
+ #include <apr_time.h>
++#include <netdb.h>
+ 
+ #ifdef WITH_MEMCACHED
+ #include <libmemcached-1.0/memcached.h>
+@@ -36,6 +37,7 @@ int riemann_failures = 0;
+ #include "export_helpers.h"
+ #include "gm_scoreboard.h"
+ 
++#define MAX_PORT_LEN 6
+ #define PATHSIZE 4096
+ extern gmetad_config_t gmetad_config;
+ 
+@@ -107,6 +109,55 @@ init_riemann_udp_socket (const char *hostname, uint16_t port)
+    return s;
+ }
+ 
++g_udp_socket*
++init_riemann_udp6_socket (const char *hostname, uint16_t port)
++{
++  struct addrinfo hints;
++  struct addrinfo *result, *rp;
++  int sfd;
++
++  g_udp_socket* s;
++  int rv;
++  char udp_port[MAX_PORT_LEN];
++
++  memset(&hints, 0, sizeof(struct addrinfo));
++  hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
++  hints.ai_socktype = SOCK_DGRAM;
++  hints.ai_flags = 0;
++  hints.ai_protocol = 0;          /* Any protocol */
++  hints.ai_canonname = NULL;
++  hints.ai_addr = NULL;
++  hints.ai_next = NULL;
++
++  snprintf(udp_port, MAX_PORT_LEN, "%d", port);
++
++  rv = getaddrinfo(hostname, udp_port, &hints, &result);
++  if (rv != 0)
++    err_quit("getaddrinfo: %s\n", gai_strerror(rv));
++
++  for (rp = result; rp != NULL; rp = rp->ai_next) {
++    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
++    if (sfd == -1)
++      continue;
++    if (connect(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
++      break;
++    close(sfd);
++  }
++  if (rp == NULL)
++    return NULL;
++
++  s = malloc( sizeof( g_udp_socket ) );
++  memset( s, 0, sizeof( g_udp_socket ));
++  s->sockfd = sfd;
++  s->ref_count = 1;
++
++  if (riemann_udp_socket)
++      close (riemann_udp_socket->sockfd);
++
++  return s;
++}
++
++
+ g_tcp_socket*
+ init_riemann_tcp_socket (const char *hostname, uint16_t port)
+ {
+@@ -165,6 +216,66 @@ init_riemann_tcp_socket (const char *hostname, uint16_t port)
+ 
+   return s;
+ }
++
++g_tcp_socket*
++init_riemann_tcp6_socket (const char *hostname, uint16_t port)
++{
++  struct addrinfo hints;
++  struct addrinfo *result, *rp;
++  int sfd;
++
++  g_tcp_socket* s;
++  int rv;
++  char tcp_port[MAX_PORT_LEN];
++
++  struct timeval timeout;
++  timeout.tv_sec = 0;
++  timeout.tv_usec = RIEMANN_TCP_TIMEOUT * 1000;
++
++  memset(&hints, 0, sizeof(struct addrinfo));
++  hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
++  hints.ai_socktype = SOCK_STREAM;
++  hints.ai_flags = 0;    
++  hints.ai_protocol = 0;          /* Any protocol */
++  hints.ai_canonname = NULL;
++  hints.ai_addr = NULL;
++  hints.ai_next = NULL;
++
++  snprintf(tcp_port, MAX_PORT_LEN, "%d", port);
++
++  rv = getaddrinfo(hostname, tcp_port, &hints, &result);
++  if (rv != 0)
++    err_quit("getaddrinfo: %s\n", gai_strerror(rv));
++
++  for (rp = result; rp != NULL; rp = rp->ai_next) {
++    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
++    if (sfd == -1)
++      continue;
++    if (setsockopt (sfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
++      close(sfd);
++      continue;
++    }
++    if (setsockopt (sfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
++      close(sfd);
++      continue;
++    }
++    if (connect(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
++      break;
++    close(sfd);
++  }
++  if (rp == NULL)
++    return NULL;
++  
++  s = malloc( sizeof( g_tcp_socket ) );
++  memset( s, 0, sizeof( g_tcp_socket ));
++  s->sockfd = sfd;
++  s->ref_count = 1;
++
++  if (riemann_tcp_socket)
++      close (riemann_tcp_socket->sockfd);
++
++  return s;
++}
+ #endif /* WITH_RIEMANN */
+ 
+ void init_sockaddr (struct sockaddr_in *name, const char *hostname, uint16_t port)
+@@ -611,8 +722,7 @@ send_event_to_riemann (Event *event)
+    msg__pack(riemann_msg, buf);
+ 
+    pthread_mutex_lock( &riemann_socket_mutex );
+-   if ((nbytes = sendto (riemann_udp_socket->sockfd, buf, len, 0,
+-                      (struct sockaddr_in*)&riemann_udp_socket->sa, sizeof (struct sockaddr_in))) == -1)
++   if ((nbytes = send(riemann_udp_socket->sockfd, buf, len, 0)) == -1)
+       errsv = errno;
+    pthread_mutex_unlock( &riemann_socket_mutex );
+    free (buf);
+diff --git a/gmetad/export_helpers.h b/gmetad/export_helpers.h
+index 613c4cf..8f9d69c 100644
+--- a/gmetad/export_helpers.h
++++ b/gmetad/export_helpers.h
+@@ -29,9 +29,13 @@ write_data_to_carbon ( const char *source, const char *host, const char *metric,
+ 
+ g_udp_socket*
+ init_riemann_udp_socket (const char *hostname, uint16_t port);
++g_udp_socket*
++init_riemann_udp6_socket (const char *hostname, uint16_t port);
+ 
+ g_tcp_socket*
+ init_riemann_tcp_socket (const char *hostname, uint16_t port);
++g_tcp_socket*
++init_riemann_tcp6_socket (const char *hostname, uint16_t port);
+ 
+ Event *                                          /* Ganglia   =>  Riemann */
+ create_riemann_event (const char *grid,          /* grid      =>  grid */
+diff --git a/gmetad/gmetad.c b/gmetad/gmetad.c
+index 090a9d7..736d469 100644
+--- a/gmetad/gmetad.c
++++ b/gmetad/gmetad.c
+@@ -74,7 +74,7 @@ print_sources ( datum_t *key, datum_t *val, void *arg )
+ {
+    int i;
+    data_source_list_t *d = *((data_source_list_t **)(val->data));
+-   g_inet_addr *addr;
++   g_inet6_addr *addr;
+ 
+    fprintf(stderr,"Source: [%s, step %d] has %d sources\n",
+       (char*) key->data, d->step, d->num_sources);
+@@ -511,12 +511,12 @@ main ( int argc, char *argv[] )
+       {
+          if (!strcmp(c->riemann_protocol, "udp"))
+             {
+-               riemann_udp_socket = init_riemann_udp_socket (c->riemann_server, c->riemann_port);
++               riemann_udp_socket = init_riemann_udp6_socket (c->riemann_server, c->riemann_port);
+ 
+                if (riemann_udp_socket == NULL)
+                   err_quit("[riemann] %s socket failed for %s:%d", c->riemann_protocol, c->riemann_server, c->riemann_port);
+             } else if (!strcmp(c->riemann_protocol, "tcp")) {
+-                riemann_tcp_socket = init_riemann_tcp_socket (c->riemann_server, c->riemann_port);
++                riemann_tcp_socket = init_riemann_tcp6_socket (c->riemann_server, c->riemann_port);
+                 if (riemann_tcp_socket == NULL) {
+                    riemann_circuit_breaker = RIEMANN_CB_OPEN;
+                    riemann_reset_timeout = apr_time_now () + RIEMANN_RETRY_TIMEOUT * APR_USEC_PER_SEC;
+diff --git a/gmetad/gmetad.conf.in b/gmetad/gmetad.conf.in
+index a29081b..cfbcbec 100644
+--- a/gmetad/gmetad.conf.in
++++ b/gmetad/gmetad.conf.in
+@@ -40,6 +40,7 @@
+ # data_source "my cluster" 10 localhost  my.machine.edu:8649  1.2.3.5:8655
+ # data_source "my grid" 50 1.3.4.7:8655 grid.org:8651 grid-backup.org:8651
+ # data_source "another source" 1.3.4.7:8655  1.3.4.8
++# data_source "yet another source" fd25:d3b4:365d:2::4 [fd25:d3b4:365d:2::5]:8655
+ 
+ data_source "my cluster" localhost
+ 
+diff --git a/gmetad/gmetad.h b/gmetad/gmetad.h
+index 3ea24e1..539c723 100644
+--- a/gmetad/gmetad.h
++++ b/gmetad/gmetad.h
+@@ -109,7 +109,7 @@ typedef struct
+       char *name;
+       unsigned int step;
+       unsigned int num_sources;
+-      g_inet_addr **sources;
++      g_inet6_addr **sources;
+       int dead;
+       int last_good_index;
+    }
+diff --git a/lib/inetaddr.c b/lib/inetaddr.c
+index 9baaeb0..57410e8 100644
+--- a/lib/inetaddr.c
++++ b/lib/inetaddr.c
+@@ -26,6 +26,7 @@
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ #include <unistd.h>
++#include <netdb.h>
+ 
+ #include "llist.h"
+ #include "net.h"
+@@ -69,6 +70,34 @@ g_gethostbyname(const char* hostname, struct sockaddr_in* sa, char** nicename)
+   return rv;
+ }
+ 
++int g_getaddrinfo(const char* hostname, const char* service, g_inet6_addr* ia, char** nicename)
++{
++  int rv = 0;
++  struct addrinfo hints;
++  struct addrinfo *result;
++  int s;
++  
++  memset(&hints, 0, sizeof(struct addrinfo));
++  hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
++  hints.ai_socktype = SOCK_STREAM;
++  hints.ai_flags = AI_PASSIVE;
++  hints.ai_protocol = 0;          /* Any protocol */
++  hints.ai_canonname = NULL;
++  hints.ai_addr = NULL;
++  hints.ai_next = NULL;
++  
++  s = getaddrinfo(hostname, service, &hints, &result);
++  if (s != 0) {
++    return s;
++  }
++  else {
++    ia->name = (char *)strdup(hostname);
++    ia->ai = result;
++    ia->ref_count = 1;
++  }
++  return s;
++}
++
+ /* Need to free return value later */
+ char*
+ g_gethostbyaddr(const char* addr, size_t length, int type)
+diff --git a/lib/net.h b/lib/net.h
+index 829bbf5..bb4d008 100644
+--- a/lib/net.h
++++ b/lib/net.h
+@@ -35,6 +35,13 @@ typedef struct
+ 
+ typedef struct
+ {
++  char *name;
++  struct addrinfo *ai;
++  unsigned int ref_count;
++} g_inet6_addr;
++
++typedef struct
++{
+   int sockfd;
+   struct sockaddr sa;
+   unsigned int ref_count;
+@@ -52,6 +59,8 @@ int             g_gethostbyname(const char* hostname, struct sockaddr_in* sa, ch
+ 
+ char*           g_gethostbyaddr(const char* addr, size_t length, int type);
+ 
++int             g_getaddrinfo(const char* hostname, const char* service, g_inet6_addr* ia, char** nicename);
++
+ g_inet_addr*    g_inetaddr_new (const char* name, int port);
+ 
+ void            g_inetaddr_delete (g_inet_addr* ia);
+@@ -102,6 +111,8 @@ g_tcp_socket*   g_tcp_socket_connect (const char* hostname, int port);
+ 
+ g_tcp_socket*   g_tcp_socket_new (const g_inet_addr* addr);
+ 
++g_tcp_socket*   g_tcp6_socket_new (const g_inet6_addr* addr);
++
+ void            g_tcp_socket_delete(g_tcp_socket* s);
+ 
+ g_tcp_socket*   g_tcp_socket_server_new (int port);
+diff --git a/lib/tcp.c b/lib/tcp.c
+index 667c4b9..242f5a6 100644
+--- a/lib/tcp.c
++++ b/lib/tcp.c
+@@ -22,6 +22,7 @@
+  * Boston, MA  02111-1307, USA.
+  */
+ #include <unistd.h>
++#include <netdb.h>
+ 
+ #include <gm_msg.h>
+ #include "net.h"
+@@ -80,6 +81,39 @@ g_tcp_socket_new (const g_inet_addr* addr)
+   return s;
+ }
+ 
++g_tcp_socket*
++g_tcp6_socket_new (const g_inet6_addr* addr)
++{
++  g_tcp_socket* s;
++  struct sockaddr* tsa;
++  struct addrinfo *result, *rp;
++  int sfd;
++  
++  for (rp = addr->ai; rp != NULL; rp = rp->ai_next) {
++    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
++    if (sfd == -1)
++      continue;
++    if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1) {
++      tsa = rp->ai_addr;
++      break; //Success
++    }
++    close(sfd);
++  }
++  if (rp == NULL)
++    return NULL;
++  s = malloc(sizeof( g_tcp_socket ));
++  if (s == NULL) {
++    close(sfd);
++    return NULL;
++  }
++  memset( s, 0, sizeof( g_tcp_socket ));
++  s->sockfd = sfd;
++  s->ref_count = 1;
++  memcpy(&s->sa, tsa, sizeof(s->sa));
++
++  return s;
++}
++
+ #if 0
+ static void
+ g_tcp_socket_ref(g_tcp_socket* s)
