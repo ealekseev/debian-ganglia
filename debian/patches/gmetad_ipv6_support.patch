@@ -1,5 +1,5 @@
 diff --git a/gmetad/conf.c.in b/gmetad/conf.c.in
-index 095d000..24bba2c 100644
+index 8ed3cfd..886a091 100644
 --- a/gmetad/conf.c.in
 +++ b/gmetad/conf.c.in
 @@ -77,12 +77,13 @@ static DOTCONF_CB(cb_data_source)
@@ -99,9 +99,18 @@ index 095d000..24bba2c 100644
  
     key.data = cmd->data.list[0];
 diff --git a/gmetad/data_thread.c b/gmetad/data_thread.c
-index e5707d7..ab54e14 100644
+index 55818fa..a9dc57d 100644
 --- a/gmetad/data_thread.c
 +++ b/gmetad/data_thread.c
+@@ -24,7 +24,7 @@ data_thread ( void *arg )
+ {
+    int i, bytes_read, rval;
+    data_source_list_t *d = (data_source_list_t *)arg;
+-   g_inet_addr *addr;
++   g_inet6_addr *addr;
+    g_tcp_socket *sock=0;
+    datum_t key;
+    char *buf;
 @@ -68,7 +68,7 @@ data_thread ( void *arg )
           
           /* If we successfully read from a good data source last time then try the same host again first. */
@@ -121,29 +130,30 @@ index e5707d7..ab54e14 100644
                     {
                       d->last_good_index = i;
 diff --git a/gmetad/export_helpers.c b/gmetad/export_helpers.c
-index dba9776..bc2f9c2 100644
+index cf05c51..811114a 100644
 --- a/gmetad/export_helpers.c
 +++ b/gmetad/export_helpers.c
-@@ -17,6 +17,7 @@
+@@ -16,6 +16,7 @@
+ #include <netdb.h>
  #include <sys/poll.h>
  #include <arpa/inet.h>
- #include <apr_time.h>
 +#include <netdb.h>
  
  #ifdef WITH_MEMCACHED
  #include <libmemcached-1.0/memcached.h>
-@@ -36,6 +37,7 @@ int riemann_failures = 0;
+@@ -28,6 +29,7 @@
+ 
  #include "export_helpers.h"
- #include "gm_scoreboard.h"
  
 +#define MAX_PORT_LEN 6
  #define PATHSIZE 4096
  extern gmetad_config_t gmetad_config;
  
-@@ -107,6 +109,55 @@ init_riemann_udp_socket (const char *hostname, uint16_t port)
+@@ -97,6 +99,55 @@ init_riemann_udp_socket (const char *hostname, uint16_t port)
+ 
     return s;
  }
- 
++
 +g_udp_socket*
 +init_riemann_udp6_socket (const char *hostname, uint16_t port)
 +{
@@ -192,110 +202,43 @@ index dba9776..bc2f9c2 100644
 +  return s;
 +}
 +
-+
- g_tcp_socket*
- init_riemann_tcp_socket (const char *hostname, uint16_t port)
- {
-@@ -165,6 +216,66 @@ init_riemann_tcp_socket (const char *hostname, uint16_t port)
- 
-   return s;
- }
-+
-+g_tcp_socket*
-+init_riemann_tcp6_socket (const char *hostname, uint16_t port)
-+{
-+  struct addrinfo hints;
-+  struct addrinfo *result, *rp;
-+  int sfd;
-+
-+  g_tcp_socket* s;
-+  int rv;
-+  char tcp_port[MAX_PORT_LEN];
-+
-+  struct timeval timeout;
-+  timeout.tv_sec = 0;
-+  timeout.tv_usec = RIEMANN_TCP_TIMEOUT * 1000;
-+
-+  memset(&hints, 0, sizeof(struct addrinfo));
-+  hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-+  hints.ai_socktype = SOCK_STREAM;
-+  hints.ai_flags = 0;    
-+  hints.ai_protocol = 0;          /* Any protocol */
-+  hints.ai_canonname = NULL;
-+  hints.ai_addr = NULL;
-+  hints.ai_next = NULL;
-+
-+  snprintf(tcp_port, MAX_PORT_LEN, "%d", port);
-+
-+  rv = getaddrinfo(hostname, tcp_port, &hints, &result);
-+  if (rv != 0)
-+    err_quit("getaddrinfo: %s\n", gai_strerror(rv));
-+
-+  for (rp = result; rp != NULL; rp = rp->ai_next) {
-+    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-+    if (sfd == -1)
-+      continue;
-+    if (setsockopt (sfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
-+      close(sfd);
-+      continue;
-+    }
-+    if (setsockopt (sfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
-+      close(sfd);
-+      continue;
-+    }
-+    if (connect(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
-+      break;
-+    close(sfd);
-+  }
-+  if (rp == NULL)
-+    return NULL;
-+  
-+  s = malloc( sizeof( g_tcp_socket ) );
-+  memset( s, 0, sizeof( g_tcp_socket ));
-+  s->sockfd = sfd;
-+  s->ref_count = 1;
-+
-+  if (riemann_tcp_socket)
-+      close (riemann_tcp_socket->sockfd);
-+
-+  return s;
-+}
  #endif /* WITH_RIEMANN */
  
  void init_sockaddr (struct sockaddr_in *name, const char *hostname, uint16_t port)
-@@ -611,8 +722,7 @@ send_event_to_riemann (Event *event)
-    msg__pack(riemann_msg, buf);
+@@ -494,8 +545,8 @@ send_data_to_riemann (const char *grid, const char *cluster, const char *host, c
+             evt.time, evt.host, evt.service, evt.state, evt.metric_f, evt.metric_d, evt.metric_sint64, evt.description, evt.ttl, evt.n_tags, evt.n_attributes);
  
-    pthread_mutex_lock( &riemann_socket_mutex );
--   if ((nbytes = sendto (riemann_udp_socket->sockfd, buf, len, 0,
--                      (struct sockaddr_in*)&riemann_udp_socket->sa, sizeof (struct sockaddr_in))) == -1)
-+   if ((nbytes = send(riemann_udp_socket->sockfd, buf, len, 0)) == -1)
-       errsv = errno;
-    pthread_mutex_unlock( &riemann_socket_mutex );
-    free (buf);
+   int nbytes;
+-  nbytes = sendto (riemann_udp_socket->sockfd, buf, len, 0,
+-                         (struct sockaddr_in*)&riemann_udp_socket->sa, sizeof (struct sockaddr_in));
++  
++  nbytes = send(riemann_udp_socket->sockfd, buf, len, 0);
+ 
+   if (nbytes != len)
+   {
 diff --git a/gmetad/export_helpers.h b/gmetad/export_helpers.h
-index 613c4cf..8f9d69c 100644
+index bcf7ee4..ede4cbe 100644
 --- a/gmetad/export_helpers.h
 +++ b/gmetad/export_helpers.h
-@@ -29,9 +29,13 @@ write_data_to_carbon ( const char *source, const char *host, const char *metric,
- 
+@@ -28,6 +28,13 @@ write_data_to_carbon ( const char *source, const char *host, const char *metric,
  g_udp_socket*
  init_riemann_udp_socket (const char *hostname, uint16_t port);
+ 
 +g_udp_socket*
 +init_riemann_udp6_socket (const char *hostname, uint16_t port);
- 
- g_tcp_socket*
- init_riemann_tcp_socket (const char *hostname, uint16_t port);
++
 +g_tcp_socket*
 +init_riemann_tcp6_socket (const char *hostname, uint16_t port);
- 
- Event *                                          /* Ganglia   =>  Riemann */
- create_riemann_event (const char *grid,          /* grid      =>  grid */
++
++
+ int                                              /* Ganglia   =>  Riemann */
+ send_data_to_riemann (const char *grid,          /* grid      =>  grid */
+                       const char *cluster,       /* cluster   =>  cluster */
 diff --git a/gmetad/gmetad.c b/gmetad/gmetad.c
-index 090a9d7..736d469 100644
+index ebf704a..d42736a 100644
 --- a/gmetad/gmetad.c
 +++ b/gmetad/gmetad.c
-@@ -74,7 +74,7 @@ print_sources ( datum_t *key, datum_t *val, void *arg )
+@@ -58,7 +58,7 @@ print_sources ( datum_t *key, datum_t *val, void *arg )
  {
     int i;
     data_source_list_t *d = *((data_source_list_t **)(val->data));
@@ -304,7 +247,7 @@ index 090a9d7..736d469 100644
  
     fprintf(stderr,"Source: [%s, step %d] has %d sources\n",
        (char*) key->data, d->step, d->num_sources);
-@@ -511,12 +511,12 @@ main ( int argc, char *argv[] )
+@@ -446,7 +446,7 @@ main ( int argc, char *argv[] )
        {
           if (!strcmp(c->riemann_protocol, "udp"))
              {
@@ -313,14 +256,8 @@ index 090a9d7..736d469 100644
  
                 if (riemann_udp_socket == NULL)
                    err_quit("[riemann] %s socket failed for %s:%d", c->riemann_protocol, c->riemann_server, c->riemann_port);
-             } else if (!strcmp(c->riemann_protocol, "tcp")) {
--                riemann_tcp_socket = init_riemann_tcp_socket (c->riemann_server, c->riemann_port);
-+                riemann_tcp_socket = init_riemann_tcp6_socket (c->riemann_server, c->riemann_port);
-                 if (riemann_tcp_socket == NULL) {
-                    riemann_circuit_breaker = RIEMANN_CB_OPEN;
-                    riemann_reset_timeout = apr_time_now () + RIEMANN_RETRY_TIMEOUT * APR_USEC_PER_SEC;
 diff --git a/gmetad/gmetad.conf.in b/gmetad/gmetad.conf.in
-index a29081b..cfbcbec 100644
+index 1ca0566..23a7782 100644
 --- a/gmetad/gmetad.conf.in
 +++ b/gmetad/gmetad.conf.in
 @@ -40,6 +40,7 @@
@@ -332,7 +269,7 @@ index a29081b..cfbcbec 100644
  data_source "my cluster" localhost
  
 diff --git a/gmetad/gmetad.h b/gmetad/gmetad.h
-index 3ea24e1..539c723 100644
+index 2d22150..39d0dad 100644
 --- a/gmetad/gmetad.h
 +++ b/gmetad/gmetad.h
 @@ -109,7 +109,7 @@ typedef struct
