@@ -1,0 +1,44 @@
+From a88c7796d8a49861d9d620084190aafa7ba22e54 Mon Sep 17 00:00:00 2001
+From: cburroughs <chris.burroughs@gmail.com>
+Date: Tue, 25 Jun 2013 21:05:17 -0400
+Subject: [PATCH] if using graphite_path, use the specified source/host/metric
+ template instead of just the cluster name
+
+---
+ gmetad/export_helpers.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/gmetad/export_helpers.c b/gmetad/export_helpers.c
+index fad70ca..83f3c53 100644
+--- a/gmetad/export_helpers.c
++++ b/gmetad/export_helpers.c
+@@ -244,8 +244,6 @@ write_data_to_carbon ( const char *source, const char *host, const char *metric,
+ 	char hostcp[hostlen+1]; 
+ 	int sourcelen=strlen(source);		
+ 	char sourcecp[sourcelen+1];
+-	int metriclen=strlen(metric);		
+-	char metriccp[metriclen+1];
+ 	char s_process_time[15];
+    char graphite_msg[ PATHSIZE + 1 ];
+    int i;
+@@ -305,7 +303,7 @@ write_data_to_carbon ( const char *source, const char *host, const char *metric,
+ 		patrn[1].torepl="%h";
+ 		patrn[1].replwith=hostcp;
+ 		patrn[2].torepl="%m";
+-		patrn[2].replwith=metriccp; 
++		patrn[2].replwith=metric;
+ 		patrn[3].torepl='\0'; //explicitly cap the array
+ 
+ 		graphite_path_ptr=path_macro_replace(graphite_path_cp, patrn); 
+@@ -317,7 +315,7 @@ write_data_to_carbon ( const char *source, const char *host, const char *metric,
+    		strncat(graphite_msg, ".", PATHSIZE-strlen(graphite_msg));
+    		strncat(graphite_msg, graphite_path_cp, PATHSIZE-strlen(graphite_msg));
+    	} else {
+-     		strncpy(graphite_msg, sourcecp, PATHSIZE);
++            strncpy(graphite_msg, graphite_path_cp, PATHSIZE);
+ 		}
+        
+    }else{ /* no graphite_path specified, so do things the old way */
+-- 
+1.9.3
+
