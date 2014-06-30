@@ -1,3 +1,3 @@
 rieman_udp_transport.patch
-gmetad_ipv6_support.patch
+gmetad_ipv6_sources_support.patch
 fix_graphite_path.patch
