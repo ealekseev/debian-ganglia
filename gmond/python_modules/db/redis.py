@@ -32,7 +32,7 @@ def metric_init(params={}):
     metric_handler.timestamp = 0
     metrics = {
         "connected_clients": {"units": "clients"},
-        "connected_slaves": {"units": "slaves"},
+        "connected_subordinates": {"units": "subordinates"},
         "blocked_clients": {"units": "clients"},
         "used_memory": {"units": "bytes"},
         "changes_since_last_save": {"units": "changes"},
@@ -50,7 +50,7 @@ def metric_init(params={}):
         "pubsub_channels": {"units": "channels"},
         "pubsub_patterns": {"units": "patterns"},
         "vm_enabled": {"units": "yes/no"},
-        "master_last_io_seconds_ago": {"units": "seconds ago"},
+        "main_last_io_seconds_ago": {"units": "seconds ago"},
     }
     metric_handler.descriptors = {}
     for name, updates in metrics.iteritems():
